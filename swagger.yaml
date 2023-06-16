@@ -1,0 +1,206 @@
+tags:
+- name: clair
+  description: GPT generation
+- name: projects
+  description: Projects
+- name: endpoints
+  description: Endpoints
+
+paths:
+  /clair/free/{id}:
+# [POST] free
+    post:
+      tags:
+      - clair
+      summary: Generate from an endpoint using free template
+      parameters:
+      - name: id
+        in: path
+        description: Endpoint Id
+        required: true
+        type: string
+      - name: email
+        in: query
+        description: User Email
+        required: true
+        type: string
+      - name: apiKey
+        in: query
+        description: User API Key
+        required: true
+        type: string
+      responses:
+        '200':
+          description: 'Created'
+          schema:
+            $ref: '#/definitions/generation'
+
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Unauthorized'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'Server Error'
+
+  /projects/free:
+  # [GET] free
+    get:
+      tags:
+      - projects
+      summary: Get free project data
+      responses:
+        200:
+          description: 'OK'
+          schema:
+            $ref: '#/definitions/project'
+        500:
+          description: 'Server Error'
+
+  /projects/free/endpoints:
+  # [GET] free/endpoints
+    get:
+      tags:
+      - projects
+      summary: Get list of free endpoints
+      responses:
+        200:
+          description: 'OK'
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/endpoint'
+        500:
+          description: 'Server Error'
+
+  /endpoints/free/{id}:
+  # [GET] free/endpoints/id
+    get:
+      tags:
+      - endpoints
+      summary: Get free endpoint by id
+      parameters:
+      - name: id
+        in: path
+        description: Endpoint Id
+        required: true
+        type: string
+      responses:
+        200:
+          description: 'OK'
+          schema:
+            $ref: '#/definitions/endpoint'
+        500:
+          description: 'Server Error'
+
+# definitions
+definitions:
+  generation:
+    type: object
+    required:
+        - _meta
+    properties:
+      _meta:
+        type: object
+        required:
+            - type
+            - version
+            - model
+            - cost
+            - retries
+            - analysis
+        properties:
+          type:
+            type: string
+            description: Account type
+          version:
+            type: string
+            description: API version
+          model:
+            type: string
+            description: GPT Model
+          cost:
+            type: string
+            description: Cost of the request
+          retries:
+            type: string
+            description: Number of retries for the request
+          analysis:
+            type: string
+            description: GTP's analysis of the request
+          balance:
+            type: string
+            description: User's balance. Only for 'free_templates' account type
+
+  project:
+    type: object
+    required:
+        - id
+        - name
+        - path
+        - description
+        - modules
+        - options
+        - type
+    properties:
+      id:
+        type: string
+        description: Project Id
+      name:
+        type: string
+        description: Project Name
+      path:
+        type: string
+        description: Project Path
+      description:
+        type: string
+        description: Project Description
+      modules:
+        type: array
+        description: Project Modules
+        items:
+          type: string
+      options:
+        type: object
+        description: Project Options (key-value)
+      type:
+        type: string
+        description: Project Type. Either 'basic' or 'advanced'
+
+  endpoint:
+    type: object
+    required:
+        - id
+        - name
+        - path
+        - description
+        - context
+        - data
+        - response
+    properties:
+      id:
+        type: string
+        description: Endpoint Id
+      name:
+        type: string
+        description: Endpoint Name
+      path:
+        type: string
+        description: Endpoint Path
+      description:
+        type: string
+        description: Endpoint Description
+      context:
+        type: string
+        description: Endpoint Context. Either 'minimal', 'default' or 'full'
+      data:
+        type: object
+        description: Endpoint Data (JSON schema)
+      response:
+        type: object
+        description: Endpoint Response (JSON schema)
+
+schemes:
+ - https
+ - http
