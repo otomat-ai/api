@@ -89,14 +89,3 @@ export interface Generator {
   data: any;
   options?: Record<string, any>;
 }
-
-export type ClairMeta = {
-  type: 'regular' | 'basics';
-  version: string;
-  model: 'gpt-3.5-turbo' | 'gpt-4';
-  cost: string;
-  unit: 'credit' | 'dollar';
-  balance: number;
-  max: number;
-  retries: number;
-};

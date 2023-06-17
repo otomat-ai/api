@@ -1,14 +1,23 @@
 import { ClairModule } from "./clair";
 import { PostOperatorData, PostOperatorResult } from "../operator";
 import fetch from "node-fetch";
+import { GeneratorModule } from "@/interfaces/generators.interface";
+import { ProcessInfo } from "@/controllers/generator.controller";
 
 export const MODERATION_COST = 0.005;
 
 export class ModerationModule extends ClairModule {
-  static async operate({data}: PostOperatorData): Promise<PostOperatorResult> {
+  static async _postOperate({ module, generator, completion, meta }: PostOperatorData & { module: GeneratorModule }): Promise<{ data: PostOperatorResult, result: ProcessInfo }> {
+    if (completion.type === 'function') {
+      return {
+        data: { success: true, cost: 0, generator, meta, completion },
+        result: { status: 'success', module: module.name, cost: 0, retries: 0 },
+      };
+    }
+
     const moderated = await fetch(
       `https://moderationapi.com/api/v1/moderation/text?value=${encodeURIComponent(
-        data.result[0]
+        completion.data
       )}`,
       {
         headers: {
@@ -17,16 +26,23 @@ export class ModerationModule extends ClairModule {
       }
     );
 
-    const moderationCost = data.cost + MODERATION_COST;
-
     const { status, flagged, toxicity } = (await moderated.json()) as any;
     if (status !== "success") {
-      return { success: false, retry: true, error: this.formatError("Could not moderate") };
+      return {
+        data: { success: false, retry: true, meta, error: this.formatError("Moderation API error") },
+        result: { status: 'failed', error: this.formatError("Moderation API error"), module: module.name, cost: 0, retries: 0 },
+      };
     }
     if (flagged) {
-      return { success: false, retry: true, error: this.formatError("Message flagged: " + toxicity.label) };
+      return {
+        data: { success: false, retry: true, meta, error: this.formatError("Message flagged: " + toxicity.label) },
+        result: { status: 'failed', error: this.formatError("Message flagged: " + toxicity.label), module: module.name, cost: 0, retries: 0 },
+      };
     }
 
-    return { success: true, creditCost: MODERATION_COST * 100, data: { ...data, cost: moderationCost } };
+    return {
+      data: { success: true, cost: 0, generator, meta, completion },
+      result: { status: 'success', module: module.name, cost: 0, retries: 0 },
+    };
   }
 };

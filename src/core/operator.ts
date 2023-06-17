@@ -1,40 +1,61 @@
-import { Completion } from "@/services/openai.service";
-import { PostModuleOption, postModules, preModules } from "./types/modules";
-import { Generator, GeneratorFunction, GeneratorModule } from "@/interfaces/generators.interface";
+import { Completion, SuccesfulCompletion } from "@/services/openai.service";
+import { postModules, preModules } from "./types/modules";
+import { Generator, GeneratorModule } from "@/interfaces/generators.interface";
+import { Meta } from "@/controllers/generator.controller";
+import { ClairModule } from "./modules/clair";
 
-type OperatorSuccess = {
+type BaseOperatorData = {
+  generator: Omit<Generator, 'flow'>,
+  modules: GeneratorModule[],
+  meta: Meta,
+}
+
+export type PreOperatorData = BaseOperatorData;
+
+export type PostOperatorData = BaseOperatorData & {
+  completion: SuccesfulCompletion,
+}
+
+type BaseOperatorSuccess = {
   success: true,
   generator: Generator,
+  meta: Meta,
   cost: number,
 }
 
-type PreOperatorSuccess = OperatorSuccess;
+type PreOperatorSuccess = BaseOperatorSuccess;
 
-type PostOperatorSuccess = OperatorSuccess & {
+type PostOperatorSuccess = BaseOperatorSuccess & {
   completion: Completion,
 }
 
 type OperatorError = {
   success: false,
-  retry: boolean,
   error: string,
+  meta: Meta,
 }
 
-export type PreOperatorResult = PreOperatorSuccess | OperatorError;
+type PreOperatorError = OperatorError;
 
-export type PostOperatorResult = PostOperatorSuccess | OperatorError;
+type PostOperatorError = OperatorError & {
+  retry: boolean,
+};
+
+export type PreOperatorResult = PreOperatorSuccess | PreOperatorError;
+
+export type PostOperatorResult = PostOperatorSuccess | PostOperatorError;
 
 export class Operator {
-  static async postOperate(generator: Omit<Generator, 'flow'>, modules: GeneratorModule[], completion: Completion): Promise<PostOperatorResult> {
-    let finalResult: PostOperatorResult = { success: true, cost: 0, generator, completion };
+  static async postOperate({ generator, modules, meta, completion }: PostOperatorData): Promise<PostOperatorResult> {
+    let finalResult: PostOperatorResult = { success: true, cost: 0, generator, meta, completion };
 
     for (const module of modules) {
-      const operator = postModules[module.name].operator;
+      const operator: typeof ClairModule = postModules[module.name].operator;
       if (operator === undefined) {
         console.log(`No operator for module ${module}`);
         continue;
       }
-      const result = await operator.operate(generator, completion);
+      const result = await operator.postOperate({ module, generator, modules, meta, completion });
       if (result.success === false) {
         console.log(`${operator.name} error`, result.error);
         return result;
@@ -45,16 +66,16 @@ export class Operator {
     return finalResult;
   }
 
-  static async preOperate(generator: Omit<Generator, 'flow'>, modules: GeneratorModule[]): Promise<PreOperatorResult> {
-    let finalResult: PreOperatorResult = { success: true, cost: 0, generator};
+  static async preOperate({ generator, modules, meta }: PreOperatorData): Promise<PreOperatorResult> {
+    let finalResult: PreOperatorResult = { success: true, cost: 0, generator, meta};
 
     for (const module of modules) {
-      const operator = preModules[module.name].operator;
+      const operator: typeof ClairModule = preModules[module.name].operator;
       if (operator === undefined) {
         console.log(`No operator for module ${module}`);
         continue;
       }
-      const result = await operator.operate(generator);
+      const result = await operator.preOperate({  module, generator, modules, meta });
       if (result.success === false) {
         console.log(`${operator.name} error`, result.error);
         return result;

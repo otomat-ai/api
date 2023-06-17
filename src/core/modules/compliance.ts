@@ -1,19 +1,64 @@
 import { Draft07 } from "json-schema-library";
 import {ClairModule } from "./clair";
 import { PostOperatorData, PostOperatorResult } from "../operator";
+import { GeneratorModule } from "@/interfaces/generators.interface";
+import { ProcessInfo } from "@/controllers/generator.controller";
 
 export class ComplianceModule extends ClairModule {
-  static async operate({command, app, options, data}: PostOperatorData): Promise<PostOperatorResult> {
-    const json = JSON.parse(data.result[0]);
-    const responseFormat = app.appFunctions.find(appFunction => appFunction.path === command).response;
+  static async _postOperate({ module, generator, completion, meta }: PostOperatorData & { module: GeneratorModule }): Promise<{ data: PostOperatorResult, result: ProcessInfo }> {
+    if (completion.type === 'json') {
+      const json = JSON.parse(completion.data);
 
-    const schema = new Draft07(responseFormat);
-    const errors = schema.validate(json);
+      let jsonOutputs = generator.instructions.output;
+      if (!Array.isArray(jsonOutputs)) jsonOutputs = [jsonOutputs];
 
-    if (errors.length > 0) {
-      return { success: false, retry: true, error: this.formatError(errors[0].message) };
+      jsonOutputs.forEach(output => {
+        const schema = new Draft07(output.schema);
+        const errors = schema.validate(json);
+
+        if (errors.length === 0) {
+          return {
+            data: { success: true, cost: 0, generator, meta, completion },
+            result: { status: 'success', module: module.name, cost: 0, retries: 0 },
+          };
+        }
+      });
+
+      return {
+        data: { success: false, retry: true, meta, error: this.formatError('Response does not match any output schema') },
+        result: { status: 'failed', error: this.formatError('Response does not match any output schema'), module: module.name, cost: 0, retries: 0 },
+      };
     }
+    else {
+      const { name: functionName, arguments: functionArguments } = completion.data;
 
-    return { success: true, creditCost: 0, data };
+      const functionError: { data: PostOperatorResult, result: ProcessInfo } = {
+        data: { success: false, retry: true, meta, error: this.formatError('Invalid function') },
+        result: { status: 'failed', error: this.formatError('Invalid function'), module: module.name, cost: 0, retries: 0 },
+      };
+
+      if (!functionName || !functionArguments) {
+        return functionError;
+      }
+
+      const functionCalled = completion.function;
+
+      try {
+          const jsonArguments = JSON.parse(functionArguments);
+          const argumentsSchema = new Draft07(functionCalled.parameters);
+
+          const argumentsValidation = argumentsSchema.validate(jsonArguments);
+          if (argumentsValidation && argumentsValidation.length > 0) {
+            return functionError;
+          }
+      } catch (error) {
+        return functionError;
+      }
+
+      return {
+        data: { success: true, cost: 0, generator, meta, completion },
+        result: { status: 'success', module: module.name, cost: 0, retries: 0 },
+      };
+    }
   }
 }

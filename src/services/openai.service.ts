@@ -1,6 +1,6 @@
 import { Clair } from "@/core/clair";
 import { Generator } from "@/interfaces/generators.interface";
-import { ChatCompletionRequestMessage, ChatCompletionRequestMessageFunctionCall, Configuration, CreateChatCompletionRequest, OpenAIApi } from "openai";
+import { ChatCompletionFunctions, ChatCompletionRequestMessage, ChatCompletionRequestMessageFunctionCall, Configuration, CreateChatCompletionRequest, OpenAIApi } from "openai";
 import { Service } from "typedi";
 
 type BaseCompletion = {
@@ -15,6 +15,7 @@ type JSONCompletion = BaseCompletion & {
 
 type FunctionCompletion = BaseCompletion & {
   type: 'function',
+  function: ChatCompletionFunctions,
   chain: boolean,
   data: ChatCompletionRequestMessageFunctionCall,
 }
@@ -104,12 +105,13 @@ export class OpenAiService {
       console.log('#DBG#', 'OPENAI RESPONSE', message);
 
       if (message.function_call) {
-        const { chain } = functions.find((f) => f.name === message.function_call.name);
+        const functionCalled = functions.find((f) => f.name === message.function_call.name);
 
         return {
           type: 'function',
+          function: functionCalled,
           data: message.function_call,
-          chain,
+          chain: functionCalled.chain,
           cost: price,
           retries: 0,
         }
