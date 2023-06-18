@@ -4,7 +4,7 @@ import { ProcessInfo } from "@/controllers/generator.controller";
 import { GeneratorModule, GeneratorOutput } from "@/interfaces/generators.interface";
 
 export class AnalysisModule extends ClairModule {
-  static async _preOperate({ module, generator, meta }: PreOperatorData & { module: GeneratorModule }): Promise<{ data: PreOperatorResult, result: ProcessInfo }> {
+  static async _preOperate({ module, generator, meta }: PreOperatorData & { module: GeneratorModule<'analysis'> }): Promise<{ data: PreOperatorResult, result: ProcessInfo }> {
     let jsonOutputs = generator.instructions.output;
     if (!Array.isArray(jsonOutputs)) jsonOutputs = [jsonOutputs];
 
@@ -27,7 +27,7 @@ export class AnalysisModule extends ClairModule {
 
     return {
       data: { success: true, cost: 0, generator: newGenerator, meta },
-      result: { status: 'success', module: module.name, cost: 0, retries: 0 },
+      result: { status: 'success', module: module.name, options: module.options, cost: 0, retries: 0 },
     };
   }
 }

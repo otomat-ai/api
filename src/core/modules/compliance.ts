@@ -5,7 +5,7 @@ import { GeneratorModule } from "@/interfaces/generators.interface";
 import { ProcessInfo } from "@/controllers/generator.controller";
 
 export class ComplianceModule extends ClairModule {
-  static async _postOperate({ module, generator, completion, meta }: PostOperatorData & { module: GeneratorModule }): Promise<{ data: PostOperatorResult, result: ProcessInfo }> {
+  static async _postOperate({ module, generator, completion, meta }: PostOperatorData & { module: GeneratorModule<'compliance'> }): Promise<{ data: PostOperatorResult, result: ProcessInfo }> {
     if (completion.type === 'json') {
       const json = JSON.parse(completion.data);
 
@@ -25,16 +25,16 @@ export class ComplianceModule extends ClairModule {
       });
 
       return {
-        data: { success: false, retry: true, meta, error: this.formatError('Response does not match any output schema') },
-        result: { status: 'failed', error: this.formatError('Response does not match any output schema'), module: module.name, cost: 0, retries: 0 },
+        data: { success: false, retry: module.options.retry, meta, error: this.formatError('Response does not match any output schema') },
+        result: { status: 'failed', error: this.formatError('Response does not match any output schema'), module: module.name, options: module.options, cost: 0, retries: 0 },
       };
     }
     else {
       const { name: functionName, arguments: functionArguments } = completion.data;
 
       const functionError: { data: PostOperatorResult, result: ProcessInfo } = {
-        data: { success: false, retry: true, meta, error: this.formatError('Invalid function') },
-        result: { status: 'failed', error: this.formatError('Invalid function'), module: module.name, cost: 0, retries: 0 },
+        data: { success: false, retry: module.options.retry, meta, error: this.formatError('Invalid function') },
+        result: { status: 'failed', error: this.formatError('Invalid function'), module: module.name, options: module.options, cost: 0, retries: 0 },
       };
 
       if (!functionName || !functionArguments) {
@@ -57,7 +57,7 @@ export class ComplianceModule extends ClairModule {
 
       return {
         data: { success: true, cost: 0, generator, meta, completion },
-        result: { status: 'success', module: module.name, cost: 0, retries: 0 },
+        result: { status: 'success', module: module.name, options: module.options, cost: 0, retries: 0 },
       };
     }
   }

@@ -1,8 +1,13 @@
-import { modules, postModules, preModules } from "@/core/types/modules";
+import { ModuleNames, ModuleOptionDefinition, ModuleOptionValue, modules, postModules, preModules } from "@/core/types/modules";
+
+export const GENERATOR_MODELS = ['gpt-3.5-turbo', 'gpt-4', 'gpt-3.5-turbo-16k', 'gpt-4-32k'] as const;
+
+export type GeneratorModel = typeof GENERATOR_MODELS[number];
 
 export type  GeneratorSettings = {
   context: 'default' | 'full';
-  model?: 'gpt-3.5-turbo' | 'gpt-4';
+  model?: GeneratorModel;
+  retries?: number;
   apiKey: string;
 }
 
@@ -20,9 +25,9 @@ export type GeneratorExample = {
   output: string;
 }
 
-export type GeneratorModule = {
-  name: keyof typeof modules;
-  options?: Record<string, any>;
+export type GeneratorModule<T extends ModuleNames> = {
+  name: T;
+  options?: ModuleOptionValue<T>;
   inputReference?: any;
   outputReference?: any;
 }
@@ -47,7 +52,7 @@ export type GeneratorFlowGenerateOption = {
 
 export type GeneratorFlowProcessOption = {
   type: 'process';
-  module: GeneratorModule;
+  module: GeneratorModule<any>;
 }
 
 export type GeneratorFlowOption = GeneratorFlowGenerateOption | GeneratorFlowProcessOption;
@@ -79,6 +84,7 @@ export type GeneratorFunction = {
   name: string;
   description: string;
   arguments: GeneratorFunctionArgument[];
+  operation: string;
   chain: boolean;
 }
 

@@ -1,5 +1,5 @@
 import { Clair } from "@/core/clair";
-import { Generator } from "@/interfaces/generators.interface";
+import { GENERATOR_MODELS, Generator, GeneratorModel } from "@/interfaces/generators.interface";
 import { ChatCompletionFunctions, ChatCompletionRequestMessage, ChatCompletionRequestMessageFunctionCall, Configuration, CreateChatCompletionRequest, OpenAIApi } from "openai";
 import { Service } from "typedi";
 
@@ -48,19 +48,29 @@ export class OpenAiService {
     return new OpenAIApi(configuration);
   }
 
-  async testKey(apiKey: string) {
+  async listModels(apiKey: string) {
     const response = await OpenAiService.getClient(apiKey).listModels();
     return response.data;
   }
 
   async getCompletion(generator: Generator, history?: ChatCompletionRequestMessage[]): Promise<Completion> {
     const apiKey = generator.settings.apiKey;
-    if (!apiKey) throw new Error('No OpenAI key provided');
+    if (!apiKey) throw new Error('No OpenAI API key provided');
+
+    const availableModels = (await this.listModels(apiKey)).data.map((m) => m.id);
+    const defaultModel = availableModels.includes('gpt-4') ? 'gpt-4' : 'gpt-3.5-turbo';
+
+    // ! Calling specific versions of the model to get functions feature. Remove after 2023-06-27
+    const model = (generator.settings.model || defaultModel) + '-0613';
+
+    if (!availableModels.includes(model)) {
+      throw new Error(`Model ${model} is not available for this OpenAI API key.`);
+    }
 
     const { messages, functions } = Clair.generatePrompt(generator);
 
     const request: CreateChatCompletionRequest = {
-      model: generator.settings.model,
+      model,
       messages: [ ...messages, ...(history || []) ],
       functions,
     }
@@ -71,33 +81,6 @@ export class OpenAiService {
       const response = await OpenAiService.getClient(apiKey).createChatCompletion(request);
 
       const message = response.data.choices[0].message;
-
-      // if (message.function_call) {
-      //   const { name: functionName, arguments: functionArguments } = message.function_call;
-
-      //   // Validate function name and arguments
-      //   if (!functionName || !functionArguments) {
-      //     throw new CompletionError('invalid_function');
-      //   }
-
-      //   const functionCalled = functions.find((f) => f.name === functionName);
-
-      //   if (!functionCalled) {
-      //     throw new CompletionError('invalid_function');
-      //   }
-
-      //   try {
-      //       const jsonArguments = JSON.parse(functionArguments);
-      //       const argumentsSchema = new Draft07(functionCalled.parameters);
-
-      //       const argumentsValidation = argumentsSchema.validate(jsonArguments);
-      //       if (argumentsValidation && argumentsValidation.length > 0) {
-      //         throw new CompletionError('invalid_function');
-      //       }
-      //   } catch (error) {
-      //     throw new CompletionError('invalid_function');
-      //   }
-      // }
 
       const usage = response.data.usage;
       const price = getUsageCost(usage, generator.settings.model);
@@ -137,15 +120,23 @@ export class OpenAiService {
   }
 }
 
-function getUsageCost(usage: { prompt_tokens: number, completion_tokens: number, total_tokens: number }, model: string) {
-  const prices = {
+function getUsageCost(usage: { prompt_tokens: number, completion_tokens: number, total_tokens: number }, model: GeneratorModel) {
+  const prices: Record<GeneratorModel, { prompt: number, completion: number }> = {
     'gpt-3.5-turbo': {
       prompt: 0.0015,
       completion: 0.002,
     },
+    'gpt-3.5-turbo-16k': {
+      prompt: 0.003,
+      completion: 0.004,
+    },
     'gpt-4': {
       prompt: 0.03,
       completion: 0.06,
+    },
+    'gpt-4-32k': {
+      prompt: 0.06,
+      completion: 0.12,
     },
   };
 

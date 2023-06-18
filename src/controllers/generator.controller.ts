@@ -2,11 +2,12 @@ import { Completion, OpenAiService, SuccesfulCompletion } from '@/services/opena
 import { NextFunction, Response, Request } from 'express';
 import { Container } from 'typedi';
 import { Operator } from '@/core/operator';
-import { isPostModuleOption, isPreModuleOption, modules } from '@/core/types/modules';
-import { Generator } from '@/interfaces/generators.interface';
+import { ModuleOptionValue, isPostModuleOption, isPreModuleOption, modules } from '@/core/types/modules';
+import { Generator, GeneratorModel } from '@/interfaces/generators.interface';
 import { GeneratorDto } from '@/dtos/generators.dto';
+import { ChatCompletionRequestMessage } from 'openai';
 
-export const MAX_COMPLETION_RETRIES = 4;
+export const DEFAULT_COMPLETION_RETRIES = 4;
 
 type CallProps = {
   generator: Generator;
@@ -17,6 +18,7 @@ type CallProps = {
 
 type BaseProcessInfo = {
   module: string;
+  options: ModuleOptionValue<any>;
   cost: number;
   retries: number;
 }
@@ -34,7 +36,7 @@ export type ProcessInfo = SuccesfulProcessInfo | FailedProcessInfo;
 
 export type Meta = {
   version: string;
-  model: 'gpt-3.5-turbo' | 'gpt-4';
+  model: GeneratorModel;
   cost: number;
   retries: number;
   process: { [P in keyof typeof modules]?: ProcessInfo };
@@ -70,19 +72,62 @@ export class GeneratorController {
 
     const flowOptions = flow || [{ type: 'generate' }];
 
-    // PRE PROCESSING
-    const preValidate = await Operator.preOperate({ generator: validatedGenerator, modules: flowOptions.filter(isPreModuleOption).map((option) => option.module), meta });
+    const retries = validatedGenerator.settings.retries || DEFAULT_COMPLETION_RETRIES;
 
-    if (preValidate.success === true) {
-      retryCost += preValidate.cost;
-      validatedGenerator = { ...preValidate.generator };
-    }
-    // No retry for pre processing as completion is not called yet
-    else {
-      throw new Error(preValidate.error);
-    }
+    try {
+      // PRE PROCESSING
+      const preValidate = await Operator.preOperate({ generator: validatedGenerator, modules: flowOptions.filter(isPreModuleOption).map((option) => option.module), meta });
 
-    const completion = await this.openAI.getCompletion(validatedGenerator);
+      if (preValidate.success === true) {
+        retryCost += preValidate.cost;
+        validatedGenerator = { ...preValidate.generator };
+      }
+      // No retry for pre processing as completion is not called yet
+      else {
+        throw new Error(preValidate.error);
+      }
+
+      const completion = await this.getCompletion(validatedGenerator);
+
+      // POST MODULES OPERATIONS
+      const postValidate = await Operator.postOperate({ generator: validatedGenerator, modules: flowOptions.filter(isPostModuleOption).map((option) => option.module), meta, completion });
+
+      if (postValidate.success === true) {
+        retryCost += postValidate.cost;
+
+        if (isSuccesfulCompletion(postValidate.completion)) {
+          // @TODO: Handle functions, chains etc
+          try {
+            const data = JSON.parse(postValidate.completion.data);
+            res.status(200).json({ data });
+          }
+          catch (error) {
+            throw new Error('Invalid JSON');
+          }
+        }
+        else {
+          throw new Error(postValidate.completion.error);
+        }
+      }
+      else if (postValidate.retry === true) {
+        if (retryCount > retries) {
+          return next(new Error('Max retries reached'));
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log('Retrying after error', postValidate.error);
+        return this.call({ generator: validatedGenerator, retry: { count: retryCount + 1, cost: retryCost }, res, next });
+      }
+      else {
+        throw new Error(postValidate.error);
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  private async getCompletion(generator: Generator, history?: ChatCompletionRequestMessage[]) {
+    const completion = await this.openAI.getCompletion(generator);
 
     if (completion.type === 'error') {
       throw new Error(completion.error);
@@ -90,38 +135,32 @@ export class GeneratorController {
 
     console.log('#LOG#', 'GENERATION OK', JSON.stringify(completion));
 
-    // POST MODULES OPERATIONS
-    const postValidate = await Operator.postOperate({ generator: validatedGenerator, modules: flowOptions.filter(isPostModuleOption).map((option) => option.module), meta, completion });
+    if (completion.type === 'function') {
+      const { chain, data: functionData } = completion;
+      const { operation } = generator.instructions.functions.find((f) => f.name === functionData.name);
 
-    if (postValidate.success === true) {
-      retryCost += postValidate.cost;
+      const functionResult = await eval(operation)(functionData.arguments);
 
-      if (isSuccesfulCompletion(postValidate.completion)) {
-        // @TODO: Handle functions, chains etc
-        try {
-          const data = JSON.parse(postValidate.completion.data);
-          res.status(200).json({ data });
-        }
-        catch (error) {
-          throw new Error('Invalid JSON');
-        }
-      }
-      else {
-        throw new Error(postValidate.completion.error);
+      if (chain) {
+        console.log('Calling again after chain function');
+        const functionHistory: ChatCompletionRequestMessage[] = [
+          {
+            role: 'assistant',
+            content: null,
+            function_call: completion.data,
+          },
+          {
+            role: 'function',
+            name: functionData.name,
+            content: functionResult,
+          }
+        ];
+
+        return this.getCompletion(generator, functionHistory);
       }
     }
-    else if (postValidate.retry === true) {
-      if (retryCount > MAX_COMPLETION_RETRIES) {
-        return next(new Error('Max retries reached'));
-      }
 
-      await new Promise(resolve => setTimeout(resolve, 500));
-      console.log('Retrying after error', postValidate.error);
-      return this.call({ generator: validatedGenerator, retry: { count: retryCount + 1, cost: retryCost }, res, next });
-    }
-    else {
-      throw new Error(postValidate.error);
-    }
+    return completion;
   }
 }
 

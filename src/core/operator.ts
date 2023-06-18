@@ -1,12 +1,13 @@
 import { Completion, SuccesfulCompletion } from "@/services/openai.service";
-import { postModules, preModules } from "./types/modules";
+import { ModuleNames, ModuleOptionValue, isModuleOption, isPreModuleOption, modules, postModules, preModules } from "./types/modules";
 import { Generator, GeneratorModule } from "@/interfaces/generators.interface";
 import { Meta } from "@/controllers/generator.controller";
 import { ClairModule } from "./modules/clair";
+import { get } from "http";
 
 type BaseOperatorData = {
-  generator: Omit<Generator, 'flow'>,
-  modules: GeneratorModule[],
+  generator: Generator,
+  modules: GeneratorModule<ModuleNames>[],
   meta: Meta,
 }
 
@@ -55,7 +56,7 @@ export class Operator {
         console.log(`No operator for module ${module}`);
         continue;
       }
-      const result = await operator.postOperate({ module, generator, modules, meta, completion });
+      const result = await operator.postOperate({ module: moduleWithDefaults(module), generator, modules, meta, completion });
       if (result.success === false) {
         console.log(`${operator.name} error`, result.error);
         return result;
@@ -75,7 +76,7 @@ export class Operator {
         console.log(`No operator for module ${module}`);
         continue;
       }
-      const result = await operator.preOperate({  module, generator, modules, meta });
+      const result = await operator.preOperate({ module: moduleWithDefaults(module), generator, modules, meta });
       if (result.success === false) {
         console.log(`${operator.name} error`, result.error);
         return result;
@@ -85,4 +86,19 @@ export class Operator {
     }
     return finalResult;
   }
+}
+
+function moduleWithDefaults<T extends ModuleNames>(module: GeneratorModule<T>): GeneratorModule<T> {
+  let options: ModuleOptionValue<T> = {};
+
+  const moduleDefinition = modules[module.name];
+
+  Object.entries(moduleDefinition.options).forEach(([optionName, optionDefinition]) => {
+    options[optionName] = module.options[optionName] ?? optionDefinition.default;
+  });
+
+  return {
+    ... module,
+    options,
+  };
 }

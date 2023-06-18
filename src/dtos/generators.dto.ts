@@ -1,63 +1,19 @@
-import { IsString, IsNotEmpty, IsOptional, IsIn, ValidateNested, IsBoolean } from 'class-validator';
-import { Generator, GeneratorExample, GeneratorFlowGenerateOption, GeneratorFlowProcessOption, GeneratorFunction, GeneratorFunctionArgument, GeneratorInstructions, GeneratorModule, GeneratorOption, GeneratorOutput, GeneratorSettings } from '@/interfaces/generators.interface';
+import { IsString, IsNotEmpty, IsOptional, IsIn, ValidateNested, IsBoolean, IsObject } from 'class-validator';
+import { GENERATOR_MODELS, Generator, GeneratorExample, GeneratorFlowGenerateOption, GeneratorFlowProcessOption, GeneratorFunction, GeneratorFunctionArgument, GeneratorInstructions, GeneratorModel, GeneratorModule, GeneratorOption, GeneratorOutput, GeneratorSettings } from '@/interfaces/generators.interface';
 import { modules } from '@/core/types/modules';
-
-/**
- * @TODO: Custom Flow Validation (pre - generate - post)
- */
-
-export class GeneratorDto implements Generator {
-  @ValidateNested()
-  public instructions: GeneratorInstructionsDto;
-
-  @ValidateNested()
-  public settings: GeneratorSettingsDto;
-
-  @ValidateNested()
-  @IsOptional()
-  public flow?: (GeneratorFlowGenerateOptionDto | GeneratorFlowProcessOptionDto)[];
-
-  @IsNotEmpty()
-  public data: any;
-
-  @IsOptional()
-  public options?: Record<string, any>;
-}
-
-export class GeneratorInstructionsDto implements GeneratorInstructions {
-  @IsString()
-  @IsNotEmpty()
-  public prompt: string;
-
-  @IsString()
-  @IsOptional()
-  public context?: string;
-
-  @ValidateNested()
-  @IsOptional()
-  public examples?: GeneratorExampleDto[];
-
-  @ValidateNested()
-  @IsOptional()
-  public options?: GeneratorOptionDto[];
-
-  @ValidateNested()
-  public output: GeneratorOutputDto | GeneratorOutputDto[];
-
-  @ValidateNested()
-  @IsOptional()
-  public functions?: GeneratorFunctionDto[];
-}
 
 export class GeneratorSettingsDto implements GeneratorSettings {
   @IsString()
   @IsIn(['default', 'full'])
   public context: 'default' | 'full';
 
-  @IsString()
-  @IsIn(['gpt-3.5-turbo', 'gpt-4'])
   @IsOptional()
-  public model?: 'gpt-3.5-turbo' | 'gpt-4';
+  public retries?: number;
+
+  @IsString()
+  @IsIn(GENERATOR_MODELS)
+  @IsOptional()
+  public model?: GeneratorModel;
 
   @IsString()
   @IsNotEmpty()
@@ -70,16 +26,7 @@ export class GeneratorFlowGenerateOptionDto implements GeneratorFlowGenerateOpti
   public type: 'generate';
 }
 
-export class GeneratorFlowProcessOptionDto implements GeneratorFlowProcessOption {
-  @IsString()
-  @IsIn(['process'])
-  public type: 'process';
-
-  @ValidateNested()
-  public module: GeneratorModuleDto;
-}
-
-export class GeneratorModuleDto implements GeneratorModule {
+export class GeneratorModuleDto implements GeneratorModule<any> {
   @IsString()
   @IsNotEmpty()
   @IsIn(Object.keys(modules))
@@ -93,6 +40,15 @@ export class GeneratorModuleDto implements GeneratorModule {
 
   @IsOptional()
   public outputReference?: any;
+}
+
+export class GeneratorFlowProcessOptionDto implements GeneratorFlowProcessOption {
+  @IsString()
+  @IsIn(['process'])
+  public type: 'process';
+
+  @ValidateNested()
+  public module: GeneratorModuleDto;
 }
 
 export class GeneratorOptionDto implements GeneratorOption {
@@ -146,6 +102,10 @@ export class GeneratorFunctionDto implements GeneratorFunction {
   @ValidateNested()
   public arguments: GeneratorFunctionArgumentDto[];
 
+  @IsString()
+  @IsNotEmpty()
+  public operation: string;
+
   @IsBoolean()
   public chain: boolean;
 }
@@ -168,4 +128,48 @@ export class GeneratorFunctionArgumentDto implements GeneratorFunctionArgument {
 
   @IsOptional()
   default?: any;
+}
+
+export class GeneratorInstructionsDto implements GeneratorInstructions {
+  @IsString()
+  @IsNotEmpty()
+  public prompt: string;
+
+  @IsString()
+  @IsOptional()
+  public context?: string;
+
+  @ValidateNested()
+  @IsOptional()
+  public examples?: GeneratorExampleDto[];
+
+  @ValidateNested()
+  @IsOptional()
+  public options?: GeneratorOptionDto[];
+
+  @ValidateNested()
+  public output: GeneratorOutputDto | GeneratorOutputDto[];
+
+  @ValidateNested()
+  @IsOptional()
+  public functions?: GeneratorFunctionDto[];
+}
+
+
+export class GeneratorDto implements Generator {
+  @ValidateNested()
+  public instructions: GeneratorInstructionsDto;
+
+  @ValidateNested()
+  public settings: GeneratorSettingsDto;
+
+  @ValidateNested()
+  @IsOptional()
+  public flow?: (GeneratorFlowGenerateOptionDto | GeneratorFlowProcessOptionDto)[];
+
+  @IsNotEmpty()
+  public data: any;
+
+  @IsOptional()
+  public options?: Record<string, any>;
 }
