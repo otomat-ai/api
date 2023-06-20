@@ -1,6 +1,8 @@
-# Otomat API
+<div align="center">
+  <img src="logo-otomat-api.png" alt="Logo Otomat API" width="128" height="128">
+</div>
 
-## Table of Contents
+# Otomat API
 
 - [Introduction](#introduction)
 - [Usage](#usage)
