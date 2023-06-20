@@ -23,8 +23,6 @@ Key Enhancements Include:
 - **Function API**: A unique feature that enables passing endpoints as functions. Otomat API will autonomously call the specified functions and chain generations as required, allowing for streamlined and dynamic content generation workflows.
 - **Response Format Validation and Automatic Retries**: Ensures that responses are in the correct format, providing an additional layer of data integrity. Additionally, Otomat API automatically retries in cases where the OpenAI GPT API does not immediately return a valid result.
 
-While Otomat API is versatile and can be adapted for a wide array of content generation tasks, it particularly excels in scenarios that demand reliability, data validation, and ease of integration.
-
 ## Usage
 
 1. Clone this repository
