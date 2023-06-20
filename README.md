@@ -92,28 +92,31 @@ Content-Type: application/json
 ## Otomat Solution
 
 🟢: Available and maintained.
+
 🟡: In development.
+
+🔴: Planned.
 
 ### API
 - 🟢 **[otomat-ai/api](https://github.com/otomat-ai/api)** - API server.
 
 ### CORE
-- 🟡 **[otomat-ai/core](https://github.com/otomat-ai/core)** - Core feature in Typescript.
+- 🔴 otomat-ai/core - Core feature in Typescript.
 
 ### FULL
-- 🟡 **[otomat-ai/full-ts](https://github.com/otomat-ai/full-ts)** - Full TypeScript solution including both the client and core for local implementation.
+- 🔴 otomat-ai/full-ts - Full TypeScript solution including both the client and core for local implementation.
 
 ### CLIENTS
-- 🟡 **[otomat-ai/client-ts](https://github.com/otomat-ai/client-ts)** - TypeScript client library.
-- 🟡 **[otomat-ai/client-py](https://github.com/otomat-ai/client-py)** - Python client library.
-- 🟡 **[otomat-ai/client-net](https://github.com/otomat-ai/client-net)** - .NET client library.
-- 🟡 **[otomat-ai/client-java](https://github.com/otomat-ai/client-java)** - Java client library.
-- 🟡 **[otomat-ai/client-go](https://github.com/otomat-ai/client-go)** - Golang client library.
-- 🟡 **[otomat-ai/client-swift](https://github.com/otomat-ai/client-swift)** - Swift client library.
-- 🟡 **[otomat-ai/client-rust](https://github.com/otomat-ai/client-rust)** - Rust client library.
-- 🟡 **[otomat-ai/client-dart](https://github.com/otomat-ai/client-dart)** - Dart client library.
-- 🟡 **[otomat-ai/client-ruby](https://github.com/otomat-ai/client-ruby)** - Ruby client library.
-- 🟡 **[otomat-ai/client-php](https://github.com/otomat-ai/client-php)** - PHP client library.
+- 🔴 otomat-ai/client-ts - TypeScript client library.
+- 🔴 otomat-ai/client-py - Python client library.
+- 🔴 otomat-ai/client-net - .NET client library.
+- 🔴 otomat-ai/client-java - Java client library.
+- 🔴 otomat-ai/client-go - Golang client library.
+- 🔴 otomat-ai/client-swift - Swift client library.
+- 🔴 otomat-ai/client-rust - Rust client library.
+- 🔴 otomat-ai/client-dart - Dart client library.
+- 🔴 otomat-ai/client-ruby - Ruby client library.
+- 🔴 otomat-ai/client-php - PHP client library.
 
 ## Contribute
 
