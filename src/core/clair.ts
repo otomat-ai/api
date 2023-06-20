@@ -1,4 +1,4 @@
-import { Generator, GeneratorFunction, GeneratorFunctionArgument, GeneratorInstructions, GeneratorOption } from "@/interfaces/generators.interface";
+import { Generator, GeneratorExample, GeneratorFunction, GeneratorFunctionArgument, GeneratorInstructions, GeneratorOption } from "@/interfaces/generators.interface";
 import { ChatCompletionFunctions, ChatCompletionRequestMessage } from "openai";
 
 export type AIContext = {
@@ -55,13 +55,39 @@ export class Clair {
   }
 
   private static generateContext(instructions: GeneratorInstructions, options: Record<string, any>, generatorOptions: GeneratorOption[]): ChatCompletionRequestMessage[] {
-    const promptExample = Clair.generateExample();
     const promptInstructions = Clair.generateInstructions(instructions, options, generatorOptions);
 
-    return [ ...promptExample, ...promptInstructions ];
+    if (instructions.examples && instructions.examples.length > 0) {
+      const examples = Clair.formatProvidedExamples(instructions.examples);
+      return [ ...promptInstructions, ...examples];
+    }
+    else {
+      const promptExample = Clair.generateExample();
+      return [ ...promptExample, ...promptInstructions ];
+    }
   }
 
-  private static generateExample(): { role: 'system' | 'user' | 'assistant'; content: string }[] {
+  private static formatProvidedExamples(examples: GeneratorExample[]): ChatCompletionRequestMessage[] {
+    let messages: ChatCompletionRequestMessage[] = [];
+
+    examples.forEach((example) => {
+      messages = [
+        ...messages,
+        {
+          role: 'user',
+          content: JSON.stringify(example.input),
+        },
+        {
+          role: 'assistant',
+          content: JSON.stringify(example.output),
+        },
+      ];
+    });
+
+    return messages;
+  }
+
+  private static generateExample(): ChatCompletionRequestMessage[] {
     return [
       {
         role: 'system',
@@ -133,7 +159,7 @@ export class Clair {
 
         RESPONSE FORMATS: ${JSON.stringify(instructions.output)}
 
-        OPTIONS: ${this.generateOptionsInstructions(generatorOptions, options)}`,
+        OPTIONS: ${this.generateOptionsInstructions(generatorOptions || [], options)}`,
       },
     ];
   }
@@ -165,11 +191,9 @@ export class Clair {
   }
 
   private static generateQuery(data: any): { role: 'user'; content: string } {
-    const { _context, ...dataWithoutContext } = data || {};
-
     return {
       role: 'user',
-      content: JSON.stringify(dataWithoutContext),
+      content: (typeof data === 'object' || Array.isArray(data)) ? JSON.stringify(data) : data,
     };
   }
 

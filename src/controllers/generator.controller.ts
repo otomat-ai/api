@@ -6,6 +6,7 @@ import { ModuleOptionValue, isPostModuleOption, isPreModuleOption, modules } fro
 import { Generator, GeneratorModel } from '@/interfaces/generators.interface';
 import { GeneratorDto } from '@/dtos/generators.dto';
 import { ChatCompletionRequestMessage } from 'openai';
+import fetch from 'node-fetch';
 
 export const DEFAULT_COMPLETION_RETRIES = 4;
 
@@ -19,8 +20,6 @@ type CallProps = {
 type BaseProcessInfo = {
   module: string;
   options: ModuleOptionValue<any>;
-  cost: number;
-  retries: number;
 }
 
 type SuccesfulProcessInfo = BaseProcessInfo & {
@@ -79,7 +78,6 @@ export class GeneratorController {
       const preValidate = await Operator.preOperate({ generator: validatedGenerator, modules: flowOptions.filter(isPreModuleOption).map((option) => option.module), meta });
 
       if (preValidate.success === true) {
-        retryCost += preValidate.cost;
         validatedGenerator = { ...preValidate.generator };
       }
       // No retry for pre processing as completion is not called yet
@@ -87,22 +85,22 @@ export class GeneratorController {
         throw new Error(preValidate.error);
       }
 
-      const completion = await this.getCompletion(validatedGenerator);
+      const completion = await this.getCompletion({ generator: validatedGenerator });
+
+      retryCost += completion.cost;
 
       // POST MODULES OPERATIONS
       const postValidate = await Operator.postOperate({ generator: validatedGenerator, modules: flowOptions.filter(isPostModuleOption).map((option) => option.module), meta, completion });
 
       if (postValidate.success === true) {
-        retryCost += postValidate.cost;
-
         if (isSuccesfulCompletion(postValidate.completion)) {
-          // @TODO: Handle functions, chains etc
-          try {
-            const data = JSON.parse(postValidate.completion.data);
-            res.status(200).json({ data });
+          if (postValidate.completion.type === 'function') {
+            const jsonArguments = JSON.parse(postValidate.completion.data.arguments);
+            res.status(200).json({ type: postValidate.completion.type, data: { ...postValidate.completion.data, arguments: jsonArguments }, meta: { ...postValidate.meta, cost: retryCost } });
           }
-          catch (error) {
-            throw new Error('Invalid JSON');
+          else {
+            const jsonData = JSON.parse(postValidate.completion.data);
+            res.status(200).json({ type: postValidate.completion.type, data: jsonData, meta: { ...postValidate.meta, cost: retryCost } });
           }
         }
         else {
@@ -126,8 +124,12 @@ export class GeneratorController {
     }
   }
 
-  private async getCompletion(generator: Generator, history?: ChatCompletionRequestMessage[]) {
-    const completion = await this.openAI.getCompletion(generator);
+  private async getCompletion({ generator, history, cost }: { generator: Generator, history?: ChatCompletionRequestMessage[], cost?: number }): Promise<SuccesfulCompletion> {
+    const completion = await this.openAI.getCompletion(generator, history);
+    console.log('#DBG#', 'COMPLETION COST', completion.cost);
+
+
+    let completionCost = cost || 0;
 
     if (completion.type === 'error') {
       throw new Error(completion.error);
@@ -137,30 +139,55 @@ export class GeneratorController {
 
     if (completion.type === 'function') {
       const { chain, data: functionData } = completion;
-      const { operation } = generator.instructions.functions.find((f) => f.name === functionData.name);
+      const functionDefinition = generator.instructions.functions.find((f) => f.name === functionData.name);
 
-      const functionResult = await eval(operation)(functionData.arguments);
+      if (functionDefinition.type === 'endpoint') {
+        let url: string = functionDefinition.url;
+        let body: any = {};
 
-      if (chain) {
-        console.log('Calling again after chain function');
-        const functionHistory: ChatCompletionRequestMessage[] = [
-          {
-            role: 'assistant',
-            content: null,
-            function_call: completion.data,
-          },
-          {
-            role: 'function',
-            name: functionData.name,
-            content: functionResult,
+        try {
+          if (functionDefinition.payload === 'query') {
+            const params = new URLSearchParams(functionData.arguments);
+            url = `${functionDefinition.url}?${params.toString()}`;
           }
-        ];
 
-        return this.getCompletion(generator, functionHistory);
+          if (functionDefinition.payload === 'body') {
+            body = { body: functionData.arguments };
+          }
+
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: functionDefinition.headers,
+            ...body,
+          });
+
+          const functionResult = await response.json();
+
+          if (chain) {
+            console.log('Calling again after chain function');
+            const functionHistory: ChatCompletionRequestMessage[] = [
+              {
+                role: 'assistant',
+                content: null,
+                function_call: completion.data,
+              },
+              {
+                role: 'function',
+                name: functionData.name,
+                content: JSON.stringify(functionResult),
+              }
+            ];
+
+            return this.getCompletion({ generator, history: functionHistory, cost: completionCost + completion.cost });
+          }
+        }
+        catch (error) {
+          throw new Error('Error calling function');
+        }
       }
     }
 
-    return completion;
+    return { ...completion, cost: completionCost + completion.cost };
   }
 }
 

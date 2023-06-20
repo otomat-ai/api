@@ -69,10 +69,12 @@ export class OpenAiService {
 
     const { messages, functions } = Clair.generatePrompt(generator);
 
+    const functionsParam = functions.length > 0 ? { functions } : {};
+
     const request: CreateChatCompletionRequest = {
       model,
       messages: [ ...messages, ...(history || []) ],
-      functions,
+      ...functionsParam,
     }
 
     console.log('#DBG#', 'OPENAI REQUEST', request);
@@ -107,7 +109,7 @@ export class OpenAiService {
         retries: 0,
       };
     } catch (error) {
-      console.log('#DBG#', 'OPENAI ERROR', error);
+      console.log('#DBG#', 'OPENAI ERROR', error.response?.data);
 
       // @TODO: Handle error cost
       return {

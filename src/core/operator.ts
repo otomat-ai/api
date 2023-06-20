@@ -21,7 +21,6 @@ type BaseOperatorSuccess = {
   success: true,
   generator: Generator,
   meta: Meta,
-  cost: number,
 }
 
 type PreOperatorSuccess = BaseOperatorSuccess;
@@ -48,7 +47,7 @@ export type PostOperatorResult = PostOperatorSuccess | PostOperatorError;
 
 export class Operator {
   static async postOperate({ generator, modules, meta, completion }: PostOperatorData): Promise<PostOperatorResult> {
-    let finalResult: PostOperatorResult = { success: true, cost: 0, generator, meta, completion };
+    let finalResult: PostOperatorResult = { success: true, generator, meta, completion };
 
     for (const module of modules) {
       const operator: typeof ClairModule = postModules[module.name].operator;
@@ -56,6 +55,7 @@ export class Operator {
         console.log(`No operator for module ${module}`);
         continue;
       }
+
       const result = await operator.postOperate({ module: moduleWithDefaults(module), generator, modules, meta, completion });
       if (result.success === false) {
         console.log(`${operator.name} error`, result.error);
@@ -68,7 +68,7 @@ export class Operator {
   }
 
   static async preOperate({ generator, modules, meta }: PreOperatorData): Promise<PreOperatorResult> {
-    let finalResult: PreOperatorResult = { success: true, cost: 0, generator, meta};
+    let finalResult: PreOperatorResult = { success: true, generator, meta};
 
     for (const module of modules) {
       const operator: typeof ClairModule = preModules[module.name].operator;
@@ -92,9 +92,13 @@ function moduleWithDefaults<T extends ModuleNames>(module: GeneratorModule<T>): 
   let options: ModuleOptionValue<T> = {};
 
   const moduleDefinition = modules[module.name];
+  console.log('#DBG#', 'MODULE DEFINITION', moduleDefinition);
+
+
+  if (!moduleDefinition.options) return module;
 
   Object.entries(moduleDefinition.options).forEach(([optionName, optionDefinition]) => {
-    options[optionName] = module.options[optionName] ?? optionDefinition.default;
+    options[optionName] = module.options?.[optionName] ?? optionDefinition.default;
   });
 
   return {

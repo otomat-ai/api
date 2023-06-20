@@ -26,8 +26,8 @@ export class AnalysisModule extends ClairModule {
     const newGenerator = { ...generator, instructions: { ...generator.instructions, output: newOutputs } };
 
     return {
-      data: { success: true, cost: 0, generator: newGenerator, meta },
-      result: { status: 'success', module: module.name, options: module.options, cost: 0, retries: 0 },
+      data: { success: true, generator: newGenerator, meta },
+      result: { status: 'success', module: module.name, options: module.options },
     };
   }
 }

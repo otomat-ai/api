@@ -1,3 +1,4 @@
+import { Meta } from "@/controllers/generator.controller";
 import { ModuleNames, ModuleOptionDefinition, ModuleOptionValue, modules, postModules, preModules } from "@/core/types/modules";
 
 export const GENERATOR_MODELS = ['gpt-3.5-turbo', 'gpt-4', 'gpt-3.5-turbo-16k', 'gpt-4-32k'] as const;
@@ -76,17 +77,30 @@ export type GeneratorFunctionArgument = {
   name: string;
   description?: string;
   type: 'string' | 'number' | 'boolean' | 'object' | 'array';
-  required?: boolean;
+  required: boolean;
   default?: any;
 }
 
-export type GeneratorFunction = {
+export type BaseGeneratorFunction = {
   name: string;
   description: string;
   arguments: GeneratorFunctionArgument[];
-  operation: string;
   chain: boolean;
 }
+
+export type GeneratorEndpointFunction = BaseGeneratorFunction & {
+  type: 'endpoint';
+  url: string;
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  payload: 'query' | 'body';
+  headers?: Record<string, string>;
+}
+
+export type GeneratorExternalFunction = BaseGeneratorFunction & {
+  type: 'external';
+}
+
+export type GeneratorFunction = GeneratorEndpointFunction | GeneratorExternalFunction;
 
 export interface Generator {
   instructions: GeneratorInstructions;

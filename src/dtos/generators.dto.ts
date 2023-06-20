@@ -1,5 +1,5 @@
 import { IsString, IsNotEmpty, IsOptional, IsIn, ValidateNested, IsBoolean, IsObject } from 'class-validator';
-import { GENERATOR_MODELS, Generator, GeneratorExample, GeneratorFlowGenerateOption, GeneratorFlowProcessOption, GeneratorFunction, GeneratorFunctionArgument, GeneratorInstructions, GeneratorModel, GeneratorModule, GeneratorOption, GeneratorOutput, GeneratorSettings } from '@/interfaces/generators.interface';
+import { GENERATOR_MODELS, Generator, GeneratorEndpointFunction, GeneratorExample, GeneratorExternalFunction, GeneratorFlowGenerateOption, GeneratorFlowProcessOption, GeneratorFunction, GeneratorFunctionArgument, GeneratorInstructions, GeneratorModel, GeneratorModule, GeneratorOption, GeneratorOutput, GeneratorSettings } from '@/interfaces/generators.interface';
 import { modules } from '@/core/types/modules';
 
 export class GeneratorSettingsDto implements GeneratorSettings {
@@ -90,7 +90,7 @@ export class GeneratorOutputDto implements GeneratorOutput {
   public schema: any;
 }
 
-export class GeneratorFunctionDto implements GeneratorFunction {
+export class GeneratorEndpointFunctionDto implements GeneratorEndpointFunction {
   @IsString()
   @IsNotEmpty()
   public name: string;
@@ -102,12 +102,48 @@ export class GeneratorFunctionDto implements GeneratorFunction {
   @ValidateNested()
   public arguments: GeneratorFunctionArgumentDto[];
 
+  @IsBoolean()
+  public chain: boolean;
+
+  @IsString()
+  @IsIn(['endpoint'])
+  public type: 'endpoint';
+
   @IsString()
   @IsNotEmpty()
-  public operation: string;
+  public url: string;
+
+  @IsString()
+  @IsIn(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
+  public method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+  @IsString()
+  @IsIn(['query', 'body'])
+  public payload: 'query' | 'body'
+
+  @IsObject()
+  @IsOptional()
+  public headers?: Record<string, string>;
+}
+
+export class GeneratorExternalFunctionDto implements GeneratorExternalFunction {
+  @IsString()
+  @IsNotEmpty()
+  public name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  public description: string;
+
+  @ValidateNested()
+  public arguments: GeneratorFunctionArgumentDto[];
 
   @IsBoolean()
   public chain: boolean;
+
+  @IsString()
+  @IsIn(['external'])
+  public type: 'external';
 }
 
 export class GeneratorFunctionArgumentDto implements GeneratorFunctionArgument {
@@ -124,7 +160,7 @@ export class GeneratorFunctionArgumentDto implements GeneratorFunctionArgument {
   public type: 'string' | 'number' | 'boolean' | 'object' | 'array';
 
   @IsBoolean()
-  public required?: boolean;
+  public required: boolean;
 
   @IsOptional()
   default?: any;
@@ -152,7 +188,7 @@ export class GeneratorInstructionsDto implements GeneratorInstructions {
 
   @ValidateNested()
   @IsOptional()
-  public functions?: GeneratorFunctionDto[];
+  public functions?: (GeneratorEndpointFunctionDto | GeneratorExternalFunctionDto)[];
 }
 
 
