@@ -1,4 +1,4 @@
-import { GeneratorFlowOption, GeneratorFlowProcessOption, GeneratorModule, GeneratorPostModule, GeneratorPreModule } from "@/interfaces/generators.interface";
+import { GeneratorFlowOption, GeneratorFlowProcessOption } from "@/interfaces/generators.interface";
 import { AnalysisModule } from "../modules/analysis";
 import { ClairModule } from "../modules/clair";
 import { ComplianceModule } from "../modules/compliance";
@@ -16,6 +16,7 @@ export type ModuleOptionValue<T extends ModuleNames> = {
 };
 
 export type Module<T extends Record<string, ModuleOptionDefinition<any>>> = {
+  type: 'pre' | 'post';
   name: string;
   key: string;
   description: string;
@@ -24,8 +25,18 @@ export type Module<T extends Record<string, ModuleOptionDefinition<any>>> = {
   options: T;
 }
 
-export const postModules = {
+export const modules: Record<string, Module<Record<string, ModuleOptionDefinition<any>>>> = {
+  analysis: {
+    type: 'pre',
+    name: "Analysis",
+    key: "analysis",
+    description: "Retrieve AI analysis of your command and response",
+    information: "Summarizes the understanding by the AI of the command for further analysis",
+    operator: AnalysisModule,
+    options: {}
+  },
   compliance: {
+    type: 'post',
     name: "Compliance",
     key: "compliance",
     description: "Validate the response of a command against a JSON schema",
@@ -41,45 +52,19 @@ export const postModules = {
   },
 } as const satisfies Record<string, Module<Record<string, ModuleOptionDefinition<any>>>>;
 
-export const preModules = {
-  analysis: {
-    name: "Analysis",
-    key: "analysis",
-    description: "Retrieve AI analysis of your command and response",
-    information: "Summarizes the understanding by the AI of the command for further analysis",
-    operator: AnalysisModule,
-    options: {}
-  },
-} as const satisfies Record<string, Module<Record<string, ModuleOptionDefinition<any>>>>;
-
-export const modules = {
-  ...postModules,
-  ...preModules,
-} as const satisfies Record<string, Module<Record<string, ModuleOptionDefinition<any>>>>;
-
 export type ModuleOption = {
   key: keyof typeof modules;
   options?: Record<string, any>;
 }
 
-export type PreModuleOption = {
-  key: keyof typeof preModules;
-  options?: Record<string, any>;
-}
-
-export type PostModuleOption = {
-  key: keyof typeof postModules;
-  options?: Record<string, any>;
-}
-
 export function isPreModuleOption(option: GeneratorFlowOption): option is GeneratorFlowProcessOption {
-  return option.type === 'process' && option.module.name in preModules;
+  return option.type === 'process' && modules[option.module.name].type === 'pre';
 }
 
 export function isPostModuleOption(option: GeneratorFlowOption): option is GeneratorFlowProcessOption {
-  return option.type === 'process' && option.module.name in postModules;
+  return option.type === 'process' && modules[option.module.name].type === 'post';
 }
 
 export function isModuleOption(option: GeneratorFlowOption): option is GeneratorFlowProcessOption {
-  return option.type === 'process' && option.module.name in modules;
+  return option.type === 'process';
 }

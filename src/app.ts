@@ -67,6 +67,7 @@ export class App {
   private initializeSwagger() {
     const options = {
       swaggerDefinition: {
+        openapi: '3.0.0',
         info: {
           title: 'OTOMAT API',
           version: process.env.npm_package_version || '0.1.0',

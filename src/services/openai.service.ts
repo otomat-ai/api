@@ -53,7 +53,7 @@ export class OpenAiService {
     return response.data;
   }
 
-  async getCompletion(generator: Generator, history?: ChatCompletionRequestMessage[]): Promise<Completion> {
+  async getCompletion(generator: Generator): Promise<Completion> {
     const apiKey = generator.settings.apiKey;
     if (!apiKey) throw new Error('No OpenAI API key provided');
 
@@ -73,7 +73,7 @@ export class OpenAiService {
 
     const request: CreateChatCompletionRequest = {
       model,
-      messages: [ ...messages, ...(history || []) ],
+      messages: [ ...messages, ...(generator.history || []) ],
       ...functionsParam,
     }
 

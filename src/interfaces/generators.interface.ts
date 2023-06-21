@@ -1,5 +1,6 @@
 import { Meta } from "@/controllers/generator.controller";
-import { ModuleNames, ModuleOptionDefinition, ModuleOptionValue, modules, postModules, preModules } from "@/core/types/modules";
+import { Module, ModuleNames, ModuleOptionDefinition, ModuleOptionValue, modules } from "@/core/types/modules";
+import { ChatCompletionRequestMessage } from "openai";
 
 export const GENERATOR_MODELS = ['gpt-3.5-turbo', 'gpt-4', 'gpt-3.5-turbo-16k', 'gpt-4-32k'] as const;
 
@@ -29,20 +30,6 @@ export type GeneratorExample = {
 export type GeneratorModule<T extends ModuleNames> = {
   name: T;
   options?: ModuleOptionValue<T>;
-  inputReference?: any;
-  outputReference?: any;
-}
-
-export type GeneratorPreModule = {
-  name: keyof typeof preModules;
-  options?: Record<string, any>;
-  inputReference?: any;
-  outputReference?: any;
-}
-
-export type GeneratorPostModule = {
-  name: keyof typeof postModules;
-  options?: Record<string, any>;
   inputReference?: any;
   outputReference?: any;
 }
@@ -108,4 +95,6 @@ export interface Generator {
   flow?: GeneratorFlow;
   data: any;
   options?: Record<string, any>;
+  customModules?: Module<any>[];
+  history?: ChatCompletionRequestMessage[];
 }

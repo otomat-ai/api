@@ -96,7 +96,7 @@ export class GeneratorController {
         if (isSuccesfulCompletion(postValidate.completion)) {
           if (postValidate.completion.type === 'function') {
             const jsonArguments = JSON.parse(postValidate.completion.data.arguments);
-            res.status(200).json({ type: postValidate.completion.type, data: { ...postValidate.completion.data, arguments: jsonArguments }, meta: { ...postValidate.meta, cost: retryCost } });
+            res.status(200).json({ type: postValidate.completion.type, data: { ...postValidate.completion.data, arguments: jsonArguments, chain: postValidate.completion.chain }, meta: { ...postValidate.meta, cost: retryCost } });
           }
           else {
             const jsonData = JSON.parse(postValidate.completion.data);
@@ -124,8 +124,8 @@ export class GeneratorController {
     }
   }
 
-  private async getCompletion({ generator, history, cost }: { generator: Generator, history?: ChatCompletionRequestMessage[], cost?: number }): Promise<SuccesfulCompletion> {
-    const completion = await this.openAI.getCompletion(generator, history);
+  private async getCompletion({ generator, cost }: { generator: Generator, cost?: number }): Promise<SuccesfulCompletion> {
+    const completion = await this.openAI.getCompletion(generator);
     console.log('#DBG#', 'COMPLETION COST', completion.cost);
 
 
@@ -168,7 +168,6 @@ export class GeneratorController {
             const functionHistory: ChatCompletionRequestMessage[] = [
               {
                 role: 'assistant',
-                content: null,
                 function_call: completion.data,
               },
               {
@@ -178,7 +177,7 @@ export class GeneratorController {
               }
             ];
 
-            return this.getCompletion({ generator, history: functionHistory, cost: completionCost + completion.cost });
+            return this.getCompletion({ generator: {...generator, history: [...generator.history, ...functionHistory]}, cost: completionCost + completion.cost });
           }
         }
         catch (error) {

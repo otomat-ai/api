@@ -1,206 +1,408 @@
-tags:
-- name: clair
-  description: GPT generation
-- name: projects
-  description: Projects
-- name: endpoints
-  description: Endpoints
-
+openapi: 3.0.0
+info:
+  title: Otomat API
+  version: 0.1.0
 paths:
-  /clair/free/{id}:
-# [POST] free
+  /generate:
     post:
       tags:
-      - clair
-      summary: Generate from an endpoint using free template
-      parameters:
-      - name: id
-        in: path
-        description: Endpoint Id
+        - Generator
+      summary: Generate output based on the instructions and data provided
+      requestBody:
         required: true
-        type: string
-      - name: email
-        in: query
-        description: User Email
-        required: true
-        type: string
-      - name: apiKey
-        in: query
-        description: User API Key
-        required: true
-        type: string
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Generator'
+            examples:
+              'Providing example and options':
+                value:
+                  instructions:
+                    prompt: "Give me the best points of interest based on my preferences and location"
+                    output:
+                      schema:
+                        type: "object"
+                        properties:
+                          points_of_interest:
+                            type: "array"
+                            items:
+                              type: "object"
+                              properties:
+                                category:
+                                  type: "string"
+                                  description: "The category of POI. Either 'Food & Dining', 'Nature & Outdoors', 'Culture & History', 'Entertainment & Leisure', 'Shopping & Retail' or 'Accommodation'"
+                                name:
+                                  type: "string"
+                                description:
+                                  type: "string"
+                                cost:
+                                  type: "string"
+                                  description: "Information about the cost"
+                              required:
+                                - category
+                                - name
+                                - description
+                                - cost
+                        required:
+                          - points_of_interest
+                    options:
+                      - name: "language"
+                        description: "The language to use for the response"
+                        type: "string"
+                        constant: false
+                        default: "english"
+                    examples:
+                      - input: "I'm in Lyon, in France. I love art and everything related to antiquity"
+                        output:
+                          points_of_interest:
+                            - category: "Culture & History"
+                              name: "Museum of Fine Arts of Lyon"
+                              description: "One of the largest art galleries in France, housed in a former 17th-century convent. It displays France's finest collections of sculptures and paintings, antiquities, and a collection of artifacts from Ancient Egypt."
+                              cost: "Free for permanent exhibitions, around 7€ for temporary ones"
+                            - category: "Culture & History"
+                              name: "Gallo-Roman Museum of Lyon-Fourvière"
+                              description: "Museum dedicated to the Gallo-Roman civilization in Lyon. Several parts of Roman theaters are included in the museum and exhibits display the foundations of ancient life."
+                              cost: "Around 4€"
+                            - category: "Culture & History"
+                              name: "Institute of Contemporary Art"
+                              description: "Museum dedicated to contemporary art and its transformations in the heart of Lyon. It does not have a permanent collection but offers changing installations and exhibitions."
+                              cost: "Free"
+                  settings:
+                    context: "default"
+                    model: "gpt-4"
+                    retries: 0
+                    apiKey: "sk-JpK57.........."
+                  data: "City: Torredembarra, Personal interests: Local culture"
+                  options:
+                    language: "spanish"
+
+              'Using API Functions and Modules':
+                value:
+                  instructions:
+                    prompt: "Give some advice about child's health based on his temperature and additional information"
+                    functions:
+                      - name: "get_local_number"
+                        description: "Get the local number of a service"
+                        arguments:
+                          - name: "city"
+                            type: "string"
+                            required: true
+                          - name: "service"
+                            type: "string"
+                            required: true
+                        chain: true
+                        type: "endpoint"
+                        url: "https://.........."
+                        method: "GET"
+                        payload: "query"
+                    output:
+                      schema:
+                        type: "object"
+                        properties:
+                          advice:
+                            type: "string"
+                          is_emergency:
+                            type: "boolean"
+                          local_number:
+                            type: "string"
+                        required:
+                          - "advice"
+                          - "is_emergency"
+                  flow:
+                    - type: "generate"
+                    - type: "process"
+                      module:
+                        name: "compliance"
+                        options:
+                          retry: false
+                  settings:
+                    context: "default"
+                    model: "gpt-3.5-turbo"
+                    apiKey: "sk-JpK57.........."
+                  data:
+                    age: "3"
+                    temperature: "40.3"
+                    unit: "celsius"
+                    location: "London"
+                    additional_information: "The child doesn't eat and seems really tired since yesterday"
+
+              'Getting function call response':
+                value:
+                  instructions:
+                    prompt: "Find a movie and show its cover based on some incomplete and possibly wrong information"
+                    functions:
+                      - name: "get_movie_cover"
+                        description: "Get the cover of a movie"
+                        arguments:
+                          - name: "title"
+                            type: "string"
+                            required: true
+                          - name: "year"
+                            type: "number"
+                            required: true
+                        chain: false
+                        type: "external"
+                    output:
+                      schema:
+                        type: "object"
+                        properties:
+                          information:
+                            type: "string"
+                            description: "Give some information about why you couldn't find the movie"
+                          choices:
+                            type: "array"
+                            description: "List of movies that could match the given information"
+                            items:
+                              type: "object"
+                              properties:
+                                title:
+                                  type: "string"
+                                year:
+                                  type: "number"
+                        required:
+                          - "information"
+                          - "choices"
+                  flow:
+                    - type: "generate"
+                    - type: "process"
+                      module:
+                        name: "compliance"
+                  settings:
+                    context: "default"
+                    model: "gpt-3.5-turbo"
+                    apiKey: "sk-JpK57.........."
+                  data: "A movie with some guys fighting in a virtual world, with lots of vfx. They wear sunglasses and black clothes"
       responses:
         '200':
-          description: 'Created'
-          schema:
-            $ref: '#/definitions/generation'
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                'Providing example and options':
+                  value:
+                    type: "json"
+                    data:
+                      points_of_interest:
+                        - category: "Cultura e Historia"
+                          name: "Castle of Torredembarra"
+                          description: "Un monumento emblemático del pueblo. Considerado como uno de los últimos castillos construidos en Cataluña, ofrece una visión de la historia y cultura de Torredembarra."
+                          cost: "Gratis"
+                        - category: "Cultura e Historia"
+                          name: "Parish Church of Sant Pere"
+                          description: "Una hermosa iglesia en el corazón de Torredembarra, que ofrece valiosos conocimientos sobre la arquitectura local y las prácticas religiosas."
+                          cost: "Gratis"
+                        - category: "Cultura e Historia"
+                          name: "Old Quarter"
+                          description: "Explora las encantadoras calles estrechas y edificios tradicionales del casco antiguo de Torredembarra para experimentar la cultura local."
+                          cost: "Gratis"
+                    meta:
+                      version: "0.1.0"
+                      model: "gpt-4"
+                      cost: 0.0429
+                      retries: 0
 
-        400:
-          description: 'Bad Request'
-        401:
-          description: 'Unauthorized'
-        409:
-          description: 'Conflict'
-        500:
-          description: 'Server Error'
+                'Using API Functions and Modules':
+                  value:
+                    type: "json"
+                    data:
+                      advice: "You should take your child to the doctor as soon as possible. His temperature is too high and he seems to be really tired. Given his age and the fact that he doesn't eat, it is better to bring him to the doctor."
+                      is_emergency: true
+                      local_number: "999"
+                    meta:
+                      version: "0.1.0"
+                      model: "gpt-3.5-turbo"
+                      cost: 0.0019
+                      retries: 0
+                      process:
+                        compliance:
+                          status: "success"
+                          module: "compliance"
+                          options:
+                            retry: false
 
-  /projects/free:
-  # [GET] free
-    get:
-      tags:
-      - projects
-      summary: Get free project data
-      responses:
-        200:
-          description: 'OK'
-          schema:
-            $ref: '#/definitions/project'
-        500:
-          description: 'Server Error'
+                'Getting function call response':
+                  value:
+                    type: "function"
+                    data:
+                      name: "get_movie_cover"
+                      arguments:
+                        title: "The Matrix"
+                        year: 1999
+                      chain: false
+                    meta:
+                      version: "0.1.0"
+                      model: "gpt-3.5-turbo"
+                      cost: 0.0006
+                      retries: 0
+                      process:
+                        compliance:
+                          status: "success"
+                          module: "compliance"
+                          options:
+                            retry: true
 
-  /projects/free/endpoints:
-  # [GET] free/endpoints
-    get:
-      tags:
-      - projects
-      summary: Get list of free endpoints
-      responses:
-        200:
-          description: 'OK'
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/endpoint'
-        500:
-          description: 'Server Error'
+components:
+  schemas:
+    Generator:
+      type: object
+      properties:
+        instructions:
+          $ref: '#/components/schemas/GeneratorInstructions'
+        settings:
+          $ref: '#/components/schemas/GeneratorSettings'
+        flow:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/GeneratorFlowGenerateOption'
+              - $ref: '#/components/schemas/GeneratorFlowProcessOption'
+        data:
+          type: object
+        options:
+          type: object
 
-  /endpoints/free/{id}:
-  # [GET] free/endpoints/id
-    get:
-      tags:
-      - endpoints
-      summary: Get free endpoint by id
-      parameters:
-      - name: id
-        in: path
-        description: Endpoint Id
-        required: true
-        type: string
-      responses:
-        200:
-          description: 'OK'
-          schema:
-            $ref: '#/definitions/endpoint'
-        500:
-          description: 'Server Error'
-
-# definitions
-definitions:
-  generation:
-    type: object
-    required:
-        - _meta
-    properties:
-      _meta:
-        type: object
-        required:
-            - type
-            - version
-            - model
-            - cost
-            - retries
-            - analysis
-        properties:
-          type:
-            type: string
-            description: Account type
-          version:
-            type: string
-            description: API version
-          model:
-            type: string
-            description: GPT Model
-          cost:
-            type: string
-            description: Cost of the request
-          retries:
-            type: string
-            description: Number of retries for the request
-          analysis:
-            type: string
-            description: GTP's analysis of the request
-          balance:
-            type: string
-            description: User's balance. Only for 'free_templates' account type
-
-  project:
-    type: object
-    required:
-        - id
-        - name
-        - path
-        - description
-        - modules
-        - options
-        - type
-    properties:
-      id:
-        type: string
-        description: Project Id
-      name:
-        type: string
-        description: Project Name
-      path:
-        type: string
-        description: Project Path
-      description:
-        type: string
-        description: Project Description
-      modules:
-        type: array
-        description: Project Modules
-        items:
+    GeneratorInstructions:
+      type: object
+      properties:
+        prompt:
           type: string
-      options:
-        type: object
-        description: Project Options (key-value)
-      type:
-        type: string
-        description: Project Type. Either 'basic' or 'advanced'
+        functions:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeneratorEndpointFunction'
+        output:
+          oneOf:
+            - $ref: '#/components/schemas/GeneratorOutput'
+            - type: array
+              items:
+                $ref: '#/components/schemas/GeneratorOutput'
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeneratorOption'
+        examples:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeneratorExample'
 
-  endpoint:
-    type: object
-    required:
-        - id
-        - name
-        - path
-        - description
-        - context
-        - data
-        - response
-    properties:
-      id:
-        type: string
-        description: Endpoint Id
-      name:
-        type: string
-        description: Endpoint Name
-      path:
-        type: string
-        description: Endpoint Path
-      description:
-        type: string
-        description: Endpoint Description
-      context:
-        type: string
-        description: Endpoint Context. Either 'minimal', 'default' or 'full'
-      data:
-        type: object
-        description: Endpoint Data (JSON schema)
-      response:
-        type: object
-        description: Endpoint Response (JSON schema)
+    GeneratorSettings:
+      type: object
+      properties:
+        context:
+          type: string
+          enum: ['default', 'full']
+        retries:
+          type: integer
+        model:
+          type: string
+        apiKey:
+          type: string
 
-schemes:
- - https
- - http
+    GeneratorFunctionArgument:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: ['string', 'number', 'boolean', 'object', 'array']
+        required:
+          type: boolean
+        default:
+          type: string
+
+    GeneratorEndpointFunction:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        arguments:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeneratorFunctionArgument'
+        chain:
+          type: boolean
+        type:
+          type: string
+          enum: ['endpoint']
+        url:
+          type: string
+        method:
+          type: string
+          enum: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+        payload:
+          type: string
+          enum: ['query', 'body']
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+
+    GeneratorOption:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: ['string', 'number', 'boolean', 'object', 'array']
+        constant:
+          type: boolean
+        default:
+          type: string
+
+    GeneratorExample:
+      type: object
+      properties:
+        input:
+          type: string
+        output:
+          type: object
+
+    GeneratorOutput:
+      type: object
+      properties:
+        description:
+          type: string
+        schema:
+          type: object
+
+    GeneratorFlowGenerateOption:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: ['generate']
+
+    GeneratorFlowProcessOption:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: ['process']
+
+    ApiResponse:
+      type: object
+      properties:
+        type:
+          type: string
+        data:
+          type: object
+        meta:
+          type: object
+
+# External Documentation
+externalDocs:
+  description: Find more information here
+  url: 'https://example.com/documentation'
+
+
+

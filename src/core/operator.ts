@@ -1,5 +1,5 @@
 import { Completion, SuccesfulCompletion } from "@/services/openai.service";
-import { ModuleNames, ModuleOptionValue, isModuleOption, isPreModuleOption, modules, postModules, preModules } from "./types/modules";
+import { ModuleNames, ModuleOptionValue, isModuleOption, isPreModuleOption, modules } from "./types/modules";
 import { Generator, GeneratorModule } from "@/interfaces/generators.interface";
 import { Meta } from "@/controllers/generator.controller";
 import { ClairModule } from "./modules/clair";
@@ -50,7 +50,7 @@ export class Operator {
     let finalResult: PostOperatorResult = { success: true, generator, meta, completion };
 
     for (const module of modules) {
-      const operator: typeof ClairModule = postModules[module.name].operator;
+      const operator: typeof ClairModule = modules[module.name].operator;
       if (operator === undefined) {
         console.log(`No operator for module ${module}`);
         continue;
@@ -71,7 +71,7 @@ export class Operator {
     let finalResult: PreOperatorResult = { success: true, generator, meta};
 
     for (const module of modules) {
-      const operator: typeof ClairModule = preModules[module.name].operator;
+      const operator: typeof ClairModule = modules[module.name].operator;
       if (operator === undefined) {
         console.log(`No operator for module ${module}`);
         continue;
