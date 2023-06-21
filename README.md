@@ -18,10 +18,10 @@ Otomat API is a powerful wrapper built around the OpenAI GPT API, created with t
 
 Besides, Otomat API not only allows you to use OpenAI GPT in a classical manner, such as building chatbots, but it is also intended for utilizing GPT's generation capabilities to integrate it into a variety of projects and fields. A key distinction is that Otomat API primarily provides responses in JSON format rather than plain text. This approach allows for leveraging GPT’s capabilities programmatically, making it significantly more versatile and adaptable.
 
-The JSON responses can contain structured data that can be easily parsed and utilized in different systems, enabling seamless integration into applications, data processing pipelines, analytics systems, and much more. Essentially, by utilizing Otomat API, you unlock the potential to employ GPT's powerful content generation in an infinite number of ways across diverse domains.
+The JSON responses contain structured data that adhere to user defined schemas. This enables seamless integration into applications, data processing pipelines, analytics systems, and much more, ultimately enabling users to unlock GPT's powerful content generation capabilities in an infinite number of ways across diverse domains.
 
 Key Enhancements Include:
-- **JSON Output**: Otomat API primarily generates structured JSON responses, which allows for programmatic utilization of GPT's capabilities, making it significantly more versatile and adaptable for integration into various systems.
+- **JSON Output**: Otomat API lets you define output schemas and generates conforming structured JSON responses, which allows for programmatic utilization of GPT's capabilities, making it significantly more versatile and adaptable for integration into various systems.
 - **Function API**: A unique feature that enables passing endpoints as functions. Otomat API will autonomously call the specified functions and chain generations as required, allowing for streamlined and dynamic content generation workflows.
 - **Response Format Validation and Automatic Retries**: Ensures that responses are in the correct format, providing an additional layer of data integrity. Additionally, Otomat API automatically retries in cases where the OpenAI GPT API does not immediately return a valid result.
 
