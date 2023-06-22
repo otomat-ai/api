@@ -95,6 +95,5 @@ export interface Generator {
   flow?: GeneratorFlow;
   data: any;
   options?: Record<string, any>;
-  customModules?: Module<any>[];
   history?: ChatCompletionRequestMessage[];
 }

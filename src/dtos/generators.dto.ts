@@ -212,9 +212,5 @@ export class GeneratorDto implements Generator {
 
   @IsArray()
   @IsOptional()
-  public customModules?: Module<any>[];
-
-  @IsArray()
-  @IsOptional()
   public history?: ChatCompletionRequestMessage[];
 }
