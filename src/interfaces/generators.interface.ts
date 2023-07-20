@@ -16,6 +16,7 @@ export type  GeneratorSettings = {
 export type GeneratorInstructions = {
   prompt: string;
   context?: string;
+  information?: string;
   examples?: GeneratorExample[];
   options?: GeneratorOption[];
   output: GeneratorOutput | GeneratorOutput[];

@@ -159,6 +159,9 @@ export class Clair {
           ${prompt}
           ${context}
 
+        USEFUL INFORMATION:
+          ${instructions.information}
+
         CONSTRAINTS: The response must be either a Function Call or valid JSON complying with one of the Response schemas below
 
         RESPONSE FORMATS: ${JSON.stringify(instructions.output)}

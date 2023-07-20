@@ -1,6 +1,6 @@
 import { IsString, IsNotEmpty, IsOptional, IsIn, ValidateNested, IsBoolean, IsObject, IsArray } from 'class-validator';
 import { GENERATOR_MODELS, Generator, GeneratorEndpointFunction, GeneratorExample, GeneratorExternalFunction, GeneratorFlowGenerateOption, GeneratorFlowProcessOption, GeneratorFunction, GeneratorFunctionArgument, GeneratorInstructions, GeneratorModel, GeneratorModule, GeneratorOption, GeneratorOutput, GeneratorSettings } from '@/interfaces/generators.interface';
-import { Module, operatingModules } from '@/core/types/modules';
+import { operatingModules } from '@/core/types/modules';
 import { ChatCompletionRequestMessage } from 'openai';
 
 export class GeneratorSettingsDto implements GeneratorSettings {
@@ -175,6 +175,10 @@ export class GeneratorInstructionsDto implements GeneratorInstructions {
   @IsString()
   @IsOptional()
   public context?: string;
+
+  @IsString()
+  @IsOptional()
+  public information?: string;
 
   @ValidateNested()
   @IsOptional()
