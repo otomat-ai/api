@@ -2,11 +2,12 @@ import { Completion, OpenAiService, SuccesfulCompletion } from '@/services/opena
 import { NextFunction, Response, Request } from 'express';
 import { Container } from 'typedi';
 import { Operator } from '@/core/operator';
-import { ModuleOptionValue, isPostModuleOption, isPreModuleOption, modules } from '@/core/types/modules';
+import { isPostModuleOption, isPreModuleOption, operatingModules } from '@/core/types/modules';
 import { Generator, GeneratorModel } from '@/interfaces/generators.interface';
 import { GeneratorDto } from '@/dtos/generators.dto';
 import { ChatCompletionRequestMessage } from 'openai';
 import fetch from 'node-fetch';
+import { ModuleOptionValue } from 'otomat-types-ts';
 
 export const DEFAULT_COMPLETION_RETRIES = 4;
 
@@ -38,7 +39,7 @@ export type Meta = {
   model: GeneratorModel;
   cost: number;
   retries: number;
-  process: { [P in keyof typeof modules]?: ProcessInfo };
+  process: { [P in keyof typeof operatingModules]?: ProcessInfo };
 };
 
 export class GeneratorController {
@@ -156,7 +157,7 @@ export class GeneratorController {
           }
 
           const response = await fetch(url, {
-            method: 'POST',
+            method: functionDefinition.method,
             headers: functionDefinition.headers,
             ...body,
           });
@@ -169,6 +170,7 @@ export class GeneratorController {
               {
                 role: 'assistant',
                 function_call: completion.data,
+                content: null,
               },
               {
                 role: 'function',
@@ -177,11 +179,11 @@ export class GeneratorController {
               }
             ];
 
-            return this.getCompletion({ generator: {...generator, history: [...generator.history, ...functionHistory]}, cost: completionCost + completion.cost });
+            return this.getCompletion({ generator: {...generator, history: [...generator.history || [], ...functionHistory]}, cost: completionCost + completion.cost });
           }
         }
         catch (error) {
-          throw new Error('Error calling function');
+          throw error;
         }
       }
     }

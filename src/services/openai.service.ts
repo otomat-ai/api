@@ -73,7 +73,7 @@ export class OpenAiService {
 
     const request: CreateChatCompletionRequest = {
       model,
-      messages: [ ...messages, ...(generator.history || []) ],
+      messages,
       ...functionsParam,
     }
 

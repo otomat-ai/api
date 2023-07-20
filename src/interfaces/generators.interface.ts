@@ -1,6 +1,5 @@
-import { Meta } from "@/controllers/generator.controller";
-import { Module, ModuleNames, ModuleOptionDefinition, ModuleOptionValue, modules } from "@/core/types/modules";
 import { ChatCompletionRequestMessage } from "openai";
+import { ModuleName, ModuleOptionValue } from "otomat-types-ts";
 
 export const GENERATOR_MODELS = ['gpt-3.5-turbo', 'gpt-4', 'gpt-3.5-turbo-16k', 'gpt-4-32k'] as const;
 
@@ -11,6 +10,7 @@ export type  GeneratorSettings = {
   model?: GeneratorModel;
   retries?: number;
   apiKey: string;
+  example?: boolean;
 }
 
 export type GeneratorInstructions = {
@@ -27,7 +27,7 @@ export type GeneratorExample = {
   output: string;
 }
 
-export type GeneratorModule<T extends ModuleNames> = {
+export type GeneratorModule<T extends ModuleName> = {
   name: T;
   options?: ModuleOptionValue<T>;
   inputReference?: any;

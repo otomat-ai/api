@@ -1,13 +1,14 @@
 import { Completion, SuccesfulCompletion } from "@/services/openai.service";
-import { ModuleNames, ModuleOptionValue, isModuleOption, isPreModuleOption, modules } from "./types/modules";
+import { operatingModules } from "./types/modules";
 import { Generator, GeneratorModule } from "@/interfaces/generators.interface";
 import { Meta } from "@/controllers/generator.controller";
 import { ClairModule } from "./modules/clair";
 import { get } from "http";
+import { ModuleName, ModuleOptionValue } from "otomat-types-ts";
 
 type BaseOperatorData = {
   generator: Generator,
-  modules: GeneratorModule<ModuleNames>[],
+  modules: GeneratorModule<ModuleName>[],
   meta: Meta,
 }
 
@@ -49,8 +50,12 @@ export class Operator {
   static async postOperate({ generator, modules, meta, completion }: PostOperatorData): Promise<PostOperatorResult> {
     let finalResult: PostOperatorResult = { success: true, generator, meta, completion };
 
+    console.log('#DBG#', 'MODULES', modules);
+    console.log('#DBG#', 'MODUUUUES', operatingModules);
+
+
     for (const module of modules) {
-      const operator: typeof ClairModule = modules[module.name].operator;
+      const operator: typeof ClairModule = operatingModules[module.name].operator;
       if (operator === undefined) {
         console.log(`No operator for module ${module}`);
         continue;
@@ -70,8 +75,12 @@ export class Operator {
   static async preOperate({ generator, modules, meta }: PreOperatorData): Promise<PreOperatorResult> {
     let finalResult: PreOperatorResult = { success: true, generator, meta};
 
+    console.log('#DBG#', 'MODULES', modules);
+    console.log('#DBG#', 'MODUUUUES', operatingModules);
+
+
     for (const module of modules) {
-      const operator: typeof ClairModule = modules[module.name].operator;
+      const operator: typeof ClairModule = operatingModules[module.name].operator;
       if (operator === undefined) {
         console.log(`No operator for module ${module}`);
         continue;
@@ -88,10 +97,10 @@ export class Operator {
   }
 }
 
-function moduleWithDefaults<T extends ModuleNames>(module: GeneratorModule<T>): GeneratorModule<T> {
+function moduleWithDefaults<T extends ModuleName>(module: GeneratorModule<T>): GeneratorModule<T> {
   let options: ModuleOptionValue<T> = {};
 
-  const moduleDefinition = modules[module.name];
+  const moduleDefinition = operatingModules[module.name];
   console.log('#DBG#', 'MODULE DEFINITION', moduleDefinition);
 
 

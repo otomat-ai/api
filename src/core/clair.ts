@@ -1,4 +1,4 @@
-import { Generator, GeneratorExample, GeneratorFunction, GeneratorFunctionArgument, GeneratorInstructions, GeneratorOption } from "@/interfaces/generators.interface";
+import { Generator, GeneratorExample, GeneratorFunction, GeneratorFunctionArgument, GeneratorInstructions, GeneratorOption, GeneratorSettings } from "@/interfaces/generators.interface";
 import { ChatCompletionFunctions, ChatCompletionRequestMessage } from "openai";
 
 export type AIContext = {
@@ -39,8 +39,8 @@ export type PromptResponse = {
 
 export class Clair {
 
-  public static generatePrompt({ instructions, data, options }: Generator): PromptResponse {
-    const context = Clair.generateContext(instructions, options, instructions.options);
+  public static generatePrompt({ instructions, data, settings, options, history }: Generator): PromptResponse {
+    const context = Clair.generateContext(instructions, settings, options, instructions.options);
     const query = Clair.generateQuery(data);
 
     const functions = instructions.functions?.map((func) => Clair.generatorFunctionToJSON(func)) || [];
@@ -48,22 +48,26 @@ export class Clair {
     return {
       messages: [
         ...context,
+        ...(history || []),
         query,
       ],
       functions,
     };
   }
 
-  private static generateContext(instructions: GeneratorInstructions, options: Record<string, any>, generatorOptions: GeneratorOption[]): ChatCompletionRequestMessage[] {
+  private static generateContext(instructions: GeneratorInstructions, settings: GeneratorSettings, options: Record<string, any>, generatorOptions: GeneratorOption[]): ChatCompletionRequestMessage[] {
     const promptInstructions = Clair.generateInstructions(instructions, options, generatorOptions);
 
     if (instructions.examples && instructions.examples.length > 0) {
       const examples = Clair.formatProvidedExamples(instructions.examples);
       return [ ...promptInstructions, ...examples];
     }
-    else {
+    else if (settings.example !== false) {
       const promptExample = Clair.generateExample();
       return [ ...promptExample, ...promptInstructions ];
+    }
+    else {
+      return promptInstructions;
     }
   }
 
