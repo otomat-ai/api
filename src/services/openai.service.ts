@@ -2,6 +2,8 @@ import { Clair } from "@/core/clair";
 import { GENERATOR_MODELS, Generator, GeneratorModel } from "@/interfaces/generators.interface";
 import { ChatCompletionFunctions, ChatCompletionRequestMessage, ChatCompletionRequestMessageFunctionCall, Configuration, CreateChatCompletionRequest, OpenAIApi } from "openai";
 import { Service } from "typedi";
+import { ChatOpenAI } from "langchain/chat_models/openai";
+import { AIMessage, HumanMessage, SystemMessage } from "langchain/schema";
 
 type BaseCompletion = {
   cost: number,
@@ -53,15 +55,14 @@ export class OpenAiService {
     return response.data;
   }
 
-  async getCompletion(generator: Generator): Promise<Completion> {
+  async getCompletion(generator: Generator, streamCallback?: (token: string) => void): Promise<Completion> {
     const apiKey = generator.settings.apiKey;
     if (!apiKey) throw new Error('No OpenAI API key provided');
 
     const availableModels = (await this.listModels(apiKey)).data.map((m) => m.id);
     const defaultModel = availableModels.includes('gpt-4') ? 'gpt-4' : 'gpt-3.5-turbo';
 
-    // ! Calling specific versions of the model to get functions feature. Remove after 2023-06-27
-    const model = (generator.settings.model || defaultModel) + '-0613';
+    const model = generator.settings.model || defaultModel;
 
     if (!availableModels.includes(model)) {
       throw new Error(`Model ${model} is not available for this OpenAI API key.`);
@@ -79,45 +80,78 @@ export class OpenAiService {
 
     console.log('#DBG#', 'OPENAI REQUEST', request);
 
-    try {
-      const response = await OpenAiService.getClient(apiKey).createChatCompletion(request);
+    if (generator.settings.stream === true) {
+      const chat = new ChatOpenAI({
+        modelName: model,
+        openAIApiKey: apiKey,
+        streaming: true,
+      });
 
-      const message = response.data.choices[0].message;
+      const response = await chat.call(request.messages.map((message) => {
+        if (message.role === 'user') {
+          return new HumanMessage(message.content);
+        }
+        if (message.role === 'system') {
+          return new SystemMessage(message.content);
+        }
+        if (message.role === 'assistant') {
+          return new AIMessage(message.content);
+        }
 
-      const usage = response.data.usage;
-      const price = getUsageCost(usage, generator.settings.model);
+        throw new Error(`Unknown message role ${message.role}`);
+      }), {
+        callbacks: [
+          {
+            handleLLMNewToken(token: string) {
+              streamCallback?.(token);
+            },
+          },
+        ],
+      });
 
-      console.log('#DBG#', 'OPENAI RESPONSE', message);
+      return;
+    }
+    else {
+      try {
+        const response = await OpenAiService.getClient(apiKey).createChatCompletion(request);
 
-      if (message.function_call) {
-        const functionCalled = functions.find((f) => f.name === message.function_call.name);
+        const message = response.data.choices[0].message;
+
+        const usage = response.data.usage;
+        const price = getUsageCost(usage, generator.settings.model);
+
+        console.log('#DBG#', 'OPENAI RESPONSE', message);
+
+        if (message.function_call) {
+          const functionCalled = functions.find((f) => f.name === message.function_call.name);
+
+          return {
+            type: 'function',
+            function: functionCalled,
+            data: message.function_call,
+            chain: functionCalled.chain,
+            cost: price,
+            retries: 0,
+          }
+        }
 
         return {
-          type: 'function',
-          function: functionCalled,
-          data: message.function_call,
-          chain: functionCalled.chain,
+          type: 'json',
+          data: message.content,
           cost: price,
           retries: 0,
-        }
+        };
+      } catch (error) {
+        console.log('#DBG#', 'OPENAI ERROR', error.response?.data);
+
+        // @TODO: Handle error cost
+        return {
+          type: 'error',
+          error,
+          cost: 0,
+          retries: 0,
+        };
       }
-
-      return {
-        type: 'json',
-        data: message.content,
-        cost: price,
-        retries: 0,
-      };
-    } catch (error) {
-      console.log('#DBG#', 'OPENAI ERROR', error.response?.data);
-
-      // @TODO: Handle error cost
-      return {
-        type: 'error',
-        error,
-        cost: 0,
-        retries: 0,
-      };
     }
   }
 }

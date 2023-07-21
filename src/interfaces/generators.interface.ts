@@ -11,6 +11,7 @@ export type  GeneratorSettings = {
   retries?: number;
   apiKey: string;
   example?: boolean;
+  stream?: boolean;
 }
 
 export type GeneratorInstructions = {

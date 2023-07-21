@@ -19,6 +19,14 @@ export class GeneratorSettingsDto implements GeneratorSettings {
   @IsString()
   @IsNotEmpty()
   public apiKey: string;
+
+  @IsBoolean()
+  @IsOptional()
+  public example?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  public stream?: boolean;
 }
 
 export class GeneratorFlowGenerateOptionDto implements GeneratorFlowGenerateOption {

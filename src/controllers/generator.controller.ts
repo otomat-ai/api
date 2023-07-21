@@ -49,11 +49,40 @@ export class GeneratorController {
     try {
       const generator: GeneratorDto = req.body;
 
-      return this.call({ generator, retry: { count: 0, cost: 0 }, res, next });
+      if (generator.settings.stream) {
+        const streamCallback = (token: string) => {
+          console.log('#DBG#', 'NEW TOKEN', token);
+
+          res.write(token);
+          res.flush();
+        };
+
+        res.writeHead(202, { 'Content-Type': 'application/json' });
+        await this.openAI.getCompletion(generator, streamCallback);
+        console.log('#DBG#', 'END', );
+
+        res.end();
+      } else {
+        return this.call({ generator, retry: { count: 0, cost: 0 }, res, next });
+      }
     } catch (error) {
       next(error);
     }
   };
+
+  private async stream({ generator, res, next }: { generator: Generator, res: Response, next: NextFunction }): Promise<void> {
+    const streamCallback = (token: string) => {
+      console.log('#DBG#', 'NEW TOKEN', token);
+
+      res.write(token);
+    };
+
+    res.writeHead(202, { 'Content-Type': 'application/json' });
+    await this.openAI.getCompletion(generator, streamCallback);
+    console.log('#DBG#', 'END', );
+
+    res.end();
+  }
 
   private async call({generator, retry, res, next}: CallProps): Promise<void> {
     let validatedGenerator: Generator = { ...generator };

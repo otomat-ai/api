@@ -5,8 +5,8 @@
   "author": "Nicolas Miquel",
   "license": "ISC",
   "scripts": {
-    "start": "cross-env NODE_ENV=production node dist/server.js",
-    "dev": "cross-env NODE_ENV=development nodemon",
+    "start": "cross-env NODE_ENV=production NODE_OPTIONS='--experimental-fetch' node dist/server.js",
+    "dev": "cross-env NODE_ENV=development NODE_OPTIONS='--experimental-fetch' nodemon",
     "build": "swc src -d dist --source-maps --copy-files",
     "build:tsc": "tsc && tsc-alias",
     "test": "jest --forceExit --detectOpenHandles",
@@ -14,7 +14,8 @@
     "lint:fix": "npm run lint -- --fix",
     "deploy:prod": "npm run build && pm2 start ecosystem.config.js --only prod",
     "deploy:dev": "pm2 start ecosystem.config.js --only dev",
-    "typeorm": "typeorm-ts-node-commonjs"
+    "typeorm": "typeorm-ts-node-commonjs",
+    "ingest": "cross-env NODE_OPTIONS='--experimental-fetch' npm run ingest"
   },
   "dependencies": {
     "bcrypt": "^5.0.1",
@@ -34,6 +35,7 @@
     "js-yaml": "^4.1.0",
     "json-schema-library": "^7.4.7",
     "jsonwebtoken": "^8.5.1",
+    "langchain": "^0.0.114",
     "morgan": "^1.10.0",
     "node-fetch": "^2.6.7",
     "nodemailer": "^6.9.1",
@@ -45,7 +47,7 @@
     "swagger-jsdoc": "^6.2.1",
     "swagger-ui-express": "^4.5.0",
     "typedi": "^0.10.0",
-    "typeorm": "^0.2.45",
+    "typeorm": "^0.3.12",
     "winston": "^3.8.1",
     "winston-daily-rotate-file": "^4.7.1"
   },
