@@ -51,7 +51,6 @@ export class GeneratorController {
 
       if (generator.settings.stream) {
         const streamCallback = (token: string) => {
-          console.log('#DBG#', 'NEW TOKEN', token);
 
           res.write(token);
           res.flush();
@@ -59,7 +58,6 @@ export class GeneratorController {
 
         res.writeHead(202, { 'Content-Type': 'application/json' });
         await this.openAI.getCompletion(generator, streamCallback);
-        console.log('#DBG#', 'END', );
 
         res.end();
       } else {
@@ -72,14 +70,12 @@ export class GeneratorController {
 
   private async stream({ generator, res, next }: { generator: Generator, res: Response, next: NextFunction }): Promise<void> {
     const streamCallback = (token: string) => {
-      console.log('#DBG#', 'NEW TOKEN', token);
 
       res.write(token);
     };
 
     res.writeHead(202, { 'Content-Type': 'application/json' });
     await this.openAI.getCompletion(generator, streamCallback);
-    console.log('#DBG#', 'END', );
 
     res.end();
   }

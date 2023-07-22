@@ -51,8 +51,6 @@ export class Operator {
     let finalResult: PostOperatorResult = { success: true, generator, meta, completion };
 
     console.log('#DBG#', 'MODULES', modules);
-    console.log('#DBG#', 'MODUUUUES', operatingModules);
-
 
     for (const module of modules) {
       const operator: typeof ClairModule = operatingModules[module.name].operator;
@@ -76,8 +74,6 @@ export class Operator {
     let finalResult: PreOperatorResult = { success: true, generator, meta};
 
     console.log('#DBG#', 'MODULES', modules);
-    console.log('#DBG#', 'MODUUUUES', operatingModules);
-
 
     for (const module of modules) {
       const operator: typeof ClairModule = operatingModules[module.name].operator;
