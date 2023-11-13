@@ -204,7 +204,10 @@ export class GeneratorController {
               }
             ];
 
-            return this.getCompletion({ generator: {...generator, history: [...generator.history || [], ...functionHistory]}, cost: completionCost + completion.cost });
+            // set history constant to generator history, parsing it if it's a string
+            const generatorHistory = !!generator.history ? [] : typeof generator.history === 'string' ? JSON.parse(generator.history) : generator.history;
+
+            return this.getCompletion({ generator: {...generator, history: [...generatorHistory, ...functionHistory]}, cost: completionCost + completion.cost });
           }
         }
         catch (error) {
