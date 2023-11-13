@@ -1,7 +1,7 @@
 import { ChatCompletionRequestMessage } from "openai";
 import { ModuleName, ModuleOptionValue } from "otomat-types-ts";
 
-export const GENERATOR_MODELS = ['gpt-3.5-turbo', 'gpt-4', 'gpt-3.5-turbo-16k', 'gpt-4-32k'] as const;
+export const GENERATOR_MODELS = ['gpt-3.5-turbo', 'gpt-4', 'gpt-3.5-turbo-16k', 'gpt-4-32k', 'gpt-4-1106-preview'] as const;
 
 export type GeneratorModel = typeof GENERATOR_MODELS[number];
 

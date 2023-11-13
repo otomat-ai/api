@@ -174,6 +174,10 @@ function getUsageCost(usage: { prompt_tokens: number, completion_tokens: number,
       prompt: 0.06,
       completion: 0.12,
     },
+    'gpt-4-1106-preview': {
+      prompt: 0.01,
+      completion: 0.03,
+    }
   };
 
   const price = prices[model];
