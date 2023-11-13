@@ -222,7 +222,6 @@ export class GeneratorDto implements Generator {
   @IsOptional()
   public options?: Record<string, any>;
 
-  @IsArray()
   @IsOptional()
   public history?: ChatCompletionRequestMessage[];
 }
