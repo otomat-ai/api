@@ -162,7 +162,7 @@ export class Clair {
         USEFUL INFORMATION:
           ${instructions.information}
 
-        CONSTRAINTS: The response must be either a Function Call or valid JSON complying with one of the Response schemas below
+        CONSTRAINTS: The response must be either a Function Call or valid JSON complying with one of the Response schemas below. Don't include formating, just valid JSON.
 
         RESPONSE FORMATS: ${JSON.stringify(instructions.output)}
 
