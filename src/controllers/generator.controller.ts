@@ -13,24 +13,24 @@ export const DEFAULT_COMPLETION_RETRIES = 4;
 
 type CallProps = {
   generator: Generator;
-  retry: { count: number, cost: number };
+  retry: { count: number; cost: number };
   res: Response;
   next: NextFunction;
-}
+};
 
 type BaseProcessInfo = {
   module: string;
   options: ModuleOptionValue<any>;
-}
+};
 
 type SuccesfulProcessInfo = BaseProcessInfo & {
   status: 'success';
-}
+};
 
 type FailedProcessInfo = BaseProcessInfo & {
   status: 'failed';
   error: string;
-}
+};
 
 export type ProcessInfo = SuccesfulProcessInfo | FailedProcessInfo;
 
@@ -51,7 +51,6 @@ export class GeneratorController {
 
       if (generator.settings.stream) {
         const streamCallback = (token: string) => {
-
           res.write(token);
           res.flush();
         };
@@ -68,9 +67,8 @@ export class GeneratorController {
     }
   };
 
-  private async stream({ generator, res, next }: { generator: Generator, res: Response, next: NextFunction }): Promise<void> {
+  private async stream({ generator, res, next }: { generator: Generator; res: Response; next: NextFunction }): Promise<void> {
     const streamCallback = (token: string) => {
-
       res.write(token);
     };
 
@@ -80,14 +78,15 @@ export class GeneratorController {
     res.end();
   }
 
-  private async call({generator, retry, res, next}: CallProps): Promise<void> {
+  private async call({ generator, retry, res, next }: CallProps): Promise<void> {
     let validatedGenerator: Generator = { ...generator };
 
     const { flow } = validatedGenerator;
 
+    // eslint-disable-next-line prefer-const
     let { count: retryCount, cost: retryCost } = { ...retry };
 
-    let meta: Meta = {
+    const meta: Meta = {
       version: process.env.npm_package_version,
       model: generator.settings.model,
       cost: retryCost,
@@ -101,7 +100,11 @@ export class GeneratorController {
 
     try {
       // PRE PROCESSING
-      const preValidate = await Operator.preOperate({ generator: validatedGenerator, modules: flowOptions.filter(isPreModuleOption).map((option) => option.module), meta });
+      const preValidate = await Operator.preOperate({
+        generator: validatedGenerator,
+        modules: flowOptions.filter(isPreModuleOption).map(option => option.module),
+        meta,
+      });
 
       if (preValidate.success === true) {
         validatedGenerator = { ...preValidate.generator };
@@ -116,24 +119,30 @@ export class GeneratorController {
       retryCost += completion.cost;
 
       // POST MODULES OPERATIONS
-      const postValidate = await Operator.postOperate({ generator: validatedGenerator, modules: flowOptions.filter(isPostModuleOption).map((option) => option.module), meta, completion });
+      const postValidate = await Operator.postOperate({
+        generator: validatedGenerator,
+        modules: flowOptions.filter(isPostModuleOption).map(option => option.module),
+        meta,
+        completion,
+      });
 
       if (postValidate.success === true) {
         if (isSuccesfulCompletion(postValidate.completion)) {
           if (postValidate.completion.type === 'function') {
             const jsonArguments = JSON.parse(postValidate.completion.data.arguments);
-            res.status(200).json({ type: postValidate.completion.type, data: { ...postValidate.completion.data, arguments: jsonArguments, chain: postValidate.completion.chain }, meta: { ...postValidate.meta, cost: retryCost } });
-          }
-          else {
+            res.status(200).json({
+              type: postValidate.completion.type,
+              data: { ...postValidate.completion.data, arguments: jsonArguments, chain: postValidate.completion.chain },
+              meta: { ...postValidate.meta, cost: retryCost },
+            });
+          } else {
             const jsonData = JSON.parse(postValidate.completion.data);
             res.status(200).json({ type: postValidate.completion.type, data: jsonData, meta: { ...postValidate.meta, cost: retryCost } });
           }
-        }
-        else {
+        } else {
           throw new Error(postValidate.completion.error);
         }
-      }
-      else if (postValidate.retry === true) {
+      } else if (postValidate.retry === true) {
         if (retryCount > retries) {
           return next(new Error('Max retries reached'));
         }
@@ -141,8 +150,7 @@ export class GeneratorController {
         await new Promise(resolve => setTimeout(resolve, 500));
         console.log('Retrying after error', postValidate.error);
         return this.call({ generator: validatedGenerator, retry: { count: retryCount + 1, cost: retryCost }, res, next });
-      }
-      else {
+      } else {
         throw new Error(postValidate.error);
       }
     } catch (error) {
@@ -150,12 +158,11 @@ export class GeneratorController {
     }
   }
 
-  private async getCompletion({ generator, cost }: { generator: Generator, cost?: number }): Promise<SuccesfulCompletion> {
+  private async getCompletion({ generator, cost }: { generator: Generator; cost?: number }): Promise<SuccesfulCompletion> {
     const completion = await this.openAI.getCompletion(generator);
-    console.log('#DBG#', 'COMPLETION COST', completion.cost);
+    console.log('#DBG#', 'COMPLETION', JSON.stringify(completion));
 
-
-    let completionCost = cost || 0;
+    const completionCost = cost || 0;
 
     if (completion.type === 'error') {
       throw new Error(completion.error);
@@ -165,7 +172,7 @@ export class GeneratorController {
 
     if (completion.type === 'function') {
       const { chain, data: functionData } = completion;
-      const functionDefinition = generator.instructions.functions.find((f) => f.name === functionData.name);
+      const functionDefinition = generator.instructions.functions.find(f => f.name === functionData.name);
 
       if (functionDefinition.type === 'endpoint') {
         let url: string = functionDefinition.url;
@@ -201,16 +208,22 @@ export class GeneratorController {
                 role: 'function',
                 name: functionData.name,
                 content: JSON.stringify(functionResult),
-              }
+              },
             ];
 
             // set history constant to generator history, parsing it if it's a string
-            const generatorHistory = !!generator.history ? [] : typeof generator.history === 'string' ? JSON.parse(generator.history) : generator.history;
+            const generatorHistory = !!generator.history
+              ? []
+              : typeof generator.history === 'string'
+              ? JSON.parse(generator.history)
+              : generator.history;
 
-            return this.getCompletion({ generator: {...generator, history: [...generatorHistory, ...functionHistory]}, cost: completionCost + completion.cost });
+            return this.getCompletion({
+              generator: { ...generator, history: [...generatorHistory, ...functionHistory] },
+              cost: completionCost + completion.cost,
+            });
           }
-        }
-        catch (error) {
+        } catch (error) {
           throw error;
         }
       }

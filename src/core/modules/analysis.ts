@@ -1,10 +1,14 @@
-import { ClairModule } from "./clair";
-import { PreOperatorData, PreOperatorResult } from "../operator";
-import { ProcessInfo } from "@/controllers/generator.controller";
-import { GeneratorModule, GeneratorOutput } from "@/interfaces/generators.interface";
+import { ClairModule } from './clair';
+import { PreOperatorData, PreOperatorResult } from '../operator';
+import { ProcessInfo } from '@/controllers/generator.controller';
+import { GeneratorModule, GeneratorOutput } from '@/interfaces/generators.interface';
 
 export class AnalysisModule extends ClairModule {
-  static async _preOperate({ module, generator, meta }: PreOperatorData & { module: GeneratorModule<'analysis'> }): Promise<{ data: PreOperatorResult, result: ProcessInfo }> {
+  static async _preOperate({
+    module,
+    generator,
+    meta,
+  }: PreOperatorData & { module: GeneratorModule<'analysis'> }): Promise<{ data: PreOperatorResult; result: ProcessInfo }> {
     let jsonOutputs = generator.instructions.output;
     if (!Array.isArray(jsonOutputs)) jsonOutputs = [jsonOutputs];
 

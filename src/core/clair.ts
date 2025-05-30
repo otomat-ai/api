@@ -1,16 +1,24 @@
-import { Generator, GeneratorExample, GeneratorFunction, GeneratorFunctionArgument, GeneratorInstructions, GeneratorOption, GeneratorSettings } from "@/interfaces/generators.interface";
-import { ChatCompletionFunctions, ChatCompletionRequestMessage } from "openai";
+import {
+  Generator,
+  GeneratorExample,
+  GeneratorFunction,
+  GeneratorFunctionArgument,
+  GeneratorInstructions,
+  GeneratorOption,
+  GeneratorSettings,
+} from '@/interfaces/generators.interface';
+import { ChatCompletionFunctions, ChatCompletionRequestMessage } from 'openai';
 
 export type AIContext = {
   description: string;
   instructions: string;
-}
+};
 
 export type AIContextData = {
   command: AICommand;
   response: AIResponse;
   options: AIOptions<any>;
-}
+};
 
 export type AIOptions<T> = Record<string, T>;
 
@@ -18,17 +26,17 @@ export type AICommand = {
   name: string;
   description: string;
   payload: string;
-}
+};
 
 export type AIResponse = {
   name: string;
   data: string;
-}
+};
 
 export type PromptPayload = {
   options: AIOptions<any>;
   data?: any;
-}
+};
 
 export type AIFunction = ChatCompletionFunctions & { chain: boolean };
 
@@ -38,35 +46,33 @@ export type PromptResponse = {
 };
 
 export class Clair {
-
   public static generatePrompt({ instructions, data, settings, options, history }: Generator): PromptResponse {
     const context = Clair.generateContext(instructions, settings, options, instructions.options);
     const query = Clair.generateQuery(data);
 
-    const functions = instructions.functions?.map((func) => Clair.generatorFunctionToJSON(func)) || [];
+    const functions = instructions.functions?.map(func => Clair.generatorFunctionToJSON(func)) || [];
 
     return {
-      messages: [
-        ...context,
-        ...(history || []),
-        query,
-      ],
+      messages: [...context, ...(history || []), query],
       functions,
     };
   }
 
-  private static generateContext(instructions: GeneratorInstructions, settings: GeneratorSettings, options: Record<string, any>, generatorOptions: GeneratorOption[]): ChatCompletionRequestMessage[] {
+  private static generateContext(
+    instructions: GeneratorInstructions,
+    settings: GeneratorSettings,
+    options: Record<string, any>,
+    generatorOptions: GeneratorOption[],
+  ): ChatCompletionRequestMessage[] {
     const promptInstructions = Clair.generateInstructions(instructions, options, generatorOptions);
 
     if (instructions.examples && instructions.examples.length > 0) {
       const examples = Clair.formatProvidedExamples(instructions.examples);
-      return [ ...promptInstructions, ...examples];
-    }
-    else if (settings.example !== false) {
+      return [...promptInstructions, ...examples];
+    } else if (settings.example !== false) {
       const promptExample = Clair.generateExample();
-      return [ ...promptExample, ...promptInstructions ];
-    }
-    else {
+      return [...promptExample, ...promptInstructions];
+    } else {
       return promptInstructions;
     }
   }
@@ -74,7 +80,7 @@ export class Clair {
   private static formatProvidedExamples(examples: GeneratorExample[]): ChatCompletionRequestMessage[] {
     let messages: ChatCompletionRequestMessage[] = [];
 
-    examples.forEach((example) => {
+    examples.forEach(example => {
       messages = [
         ...messages,
         {
@@ -147,7 +153,11 @@ export class Clair {
     ];
   }
 
-  private static generateInstructions(instructions: GeneratorInstructions, options: Record<string, any>, generatorOptions: GeneratorOption[]): ChatCompletionRequestMessage[] {
+  private static generateInstructions(
+    instructions: GeneratorInstructions,
+    options: Record<string, any>,
+    generatorOptions: GeneratorOption[],
+  ): ChatCompletionRequestMessage[] {
     const prompt = instructions.prompt;
     const context = instructions.context || [];
 
@@ -173,11 +183,11 @@ export class Clair {
 
   private static generateOptionsInstructions(generatorOptions: GeneratorOption[], options: Record<string, any>): string {
     const generatorFunctionsMap = new Map<string, GeneratorOption>();
-    generatorOptions.forEach((option) => generatorFunctionsMap.set(option.name, option));
+    generatorOptions.forEach(option => generatorFunctionsMap.set(option.name, option));
 
-    let useOptions = { ...options };
+    const useOptions = { ...options };
 
-    generatorOptions.forEach((option) => {
+    generatorOptions.forEach(option => {
       if (option.constant) {
         useOptions[option.name] = option.default;
       }
@@ -188,60 +198,63 @@ export class Clair {
     }
 
     return `
-    ${Object.entries(useOptions).map(([name, value]) => {
-      const generatorOption = generatorFunctionsMap.get(name);
-      return `
+    ${Object.entries(useOptions)
+      .map(([name, value]) => {
+        const generatorOption = generatorFunctionsMap.get(name);
+        return `
       <${name.toLowerCase()}> ${value}
       ${generatorOption.description}
-      `}).join('')}
+      `;
+      })
+      .join('')}
     `;
   }
 
   private static generateQuery(data: any): { role: 'user'; content: string } {
     return {
       role: 'user',
-      content: (typeof data === 'object' || Array.isArray(data)) ? JSON.stringify(data) : data,
+      content: typeof data === 'object' || Array.isArray(data) ? JSON.stringify(data) : data,
     };
   }
 
   private static generatorFunctionToJSON(func: GeneratorFunction): AIFunction {
     const parameters: any = {
-        type: 'object',
-        properties: {},
-        required: [],
-        default: {}
+      type: 'object',
+      properties: {},
+      required: [],
+      default: {},
     };
 
     func.arguments.forEach((arg: GeneratorFunctionArgument) => {
-        let propertyType: any;
-        if (arg.type === 'array') {
-            propertyType = { type: 'array' };
-        } else if (arg.type === 'object') {
-            propertyType = { type: 'object' };
-        } else {
-            propertyType = { type: arg.type };
-        }
+      let propertyType: any;
+      if (arg.type === 'array') {
+        propertyType = { type: 'array' };
+      } else if (arg.type === 'object') {
+        propertyType = { type: 'object' };
+      } else {
+        propertyType = { type: arg.type };
+      }
 
-        parameters.properties[arg.name] = propertyType;
+      parameters.properties[arg.name] = propertyType;
 
-        if (arg.description) {
-            propertyType.description = arg.description;
-        }
+      if (arg.description) {
+        propertyType.description = arg.description;
+      }
 
-        if (arg.default) {
-            propertyType.default = arg.default;
-        }
+      if (arg.default) {
+        propertyType.default = arg.default;
+      }
 
-        if (arg.required) {
-            parameters.required.push(arg.name);
-        }
+      if (arg.required) {
+        parameters.required.push(arg.name);
+      }
     });
 
     return {
-        name: func.name,
-        description: func.description,
-        parameters,
-        chain: func.chain,
+      name: func.name,
+      description: func.description,
+      parameters,
+      chain: func.chain,
     };
   }
 }

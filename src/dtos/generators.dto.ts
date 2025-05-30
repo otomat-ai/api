@@ -1,5 +1,21 @@
 import { IsString, IsNotEmpty, IsOptional, IsIn, ValidateNested, IsBoolean, IsObject, IsArray } from 'class-validator';
-import { GENERATOR_MODELS, Generator, GeneratorEndpointFunction, GeneratorExample, GeneratorExternalFunction, GeneratorFlowGenerateOption, GeneratorFlowProcessOption, GeneratorFunction, GeneratorFunctionArgument, GeneratorInstructions, GeneratorModel, GeneratorModule, GeneratorOption, GeneratorOutput, GeneratorSettings } from '@/interfaces/generators.interface';
+import {
+  GENERATOR_MODELS,
+  Generator,
+  GeneratorEndpointFunction,
+  GeneratorExample,
+  GeneratorExternalFunction,
+  GeneratorFlowGenerateOption,
+  GeneratorFlowProcessOption,
+  GeneratorFunction,
+  GeneratorFunctionArgument,
+  GeneratorInstructions,
+  GeneratorModel,
+  GeneratorModule,
+  GeneratorOption,
+  GeneratorOutput,
+  GeneratorSettings,
+} from '@/interfaces/generators.interface';
 import { operatingModules } from '@/core/types/modules';
 import { ChatCompletionRequestMessage } from 'openai';
 
@@ -128,7 +144,7 @@ export class GeneratorEndpointFunctionDto implements GeneratorEndpointFunction {
 
   @IsString()
   @IsIn(['query', 'body'])
-  public payload: 'query' | 'body'
+  public payload: 'query' | 'body';
 
   @IsObject()
   @IsOptional()
@@ -203,7 +219,6 @@ export class GeneratorInstructionsDto implements GeneratorInstructions {
   @IsOptional()
   public functions?: (GeneratorEndpointFunctionDto | GeneratorExternalFunctionDto)[];
 }
-
 
 export class GeneratorDto implements Generator {
   @ValidateNested()

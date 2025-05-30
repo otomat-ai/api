@@ -19,7 +19,7 @@ const createToken = (user: User, maxAge?: number): TokenData => {
   const expiresIn = maxAge || TOKEN_MAX_AGE;
 
   return { expiresIn, token: sign(dataStoredInToken, secretKey, { expiresIn }) };
-}
+};
 
 export const createApiKey = (user: User, name?: string): ApiKey => {
   const dataStoredInToken: DataStoredInToken = { id: user.id };
@@ -28,13 +28,13 @@ export const createApiKey = (user: User, name?: string): ApiKey => {
   return {
     name: name || generateRandom(6),
     key: sign(dataStoredInToken, secretKey, { expiresIn: API_KEY_MAX_AGE }),
-    active: true
+    active: true,
   };
-}
+};
 
 const createCookie = (tokenData: TokenData): string => {
   return `Authorization=${tokenData.token}; Max-Age=${tokenData.expiresIn};`;
-}
+};
 
 @Service()
 @EntityRepository()
@@ -52,12 +52,12 @@ export class AuthService extends Repository<UserEntity> {
     return createUserData;
   }
 
-  public async login({ email, password }: CreateUserDto): Promise<{ cookie: string; token: string, findUser: User }> {
+  public async login({ email, password }: CreateUserDto): Promise<{ cookie: string; token: string; findUser: User }> {
     const findUser: User = await UserEntity.findOne({ where: { email } });
     if (!findUser) throw new HttpException(409, `This email ${email} was not found`);
 
     const isPasswordMatching: boolean = await compare(password, findUser.password);
-    if (!isPasswordMatching) throw new HttpException(409, "Password not matching");
+    if (!isPasswordMatching) throw new HttpException(409, 'Password not matching');
 
     const tokenData = createToken(findUser);
     const cookie = createCookie(tokenData);
@@ -65,12 +65,12 @@ export class AuthService extends Repository<UserEntity> {
     return { cookie, token: tokenData.token, findUser };
   }
 
-  public async loginApi({ email, apiKey }: ApiUserDto): Promise<{ cookie: string; token: string, findUser: User }> {
+  public async loginApi({ email, apiKey }: ApiUserDto): Promise<{ cookie: string; token: string; findUser: User }> {
     const findUser: User = await UserEntity.findOne({ where: { email } });
     if (!findUser) throw new HttpException(409, `This email ${email} was not found`);
 
-    const isApiKeyMatching = Object.values(findUser.apiKeys).some((userKey) => userKey.key === apiKey && userKey.active);
-    if (!isApiKeyMatching) throw new HttpException(409, "API key not found");
+    const isApiKeyMatching = Object.values(findUser.apiKeys).some(userKey => userKey.key === apiKey && userKey.active);
+    if (!isApiKeyMatching) throw new HttpException(409, 'API key not found');
 
     const tokenData = createToken(findUser);
     const cookie = createCookie(tokenData);
@@ -78,7 +78,15 @@ export class AuthService extends Repository<UserEntity> {
     return { cookie, token: tokenData.token, findUser };
   }
 
-  public async oAuthLogin({ email, sub, exp }: { email: string, sub: string, exp: number }): Promise<{ cookie: string; token: string, findUser: User }> {
+  public async oAuthLogin({
+    email,
+    sub,
+    exp,
+  }: {
+    email: string;
+    sub: string;
+    exp: number;
+  }): Promise<{ cookie: string; token: string; findUser: User }> {
     const findUser: User = await UserEntity.findOne({ where: { email, gid: sub } });
     if (!findUser) throw new HttpException(409, `This user was not found`);
 

@@ -1,6 +1,6 @@
-import { ProcessInfo } from "@/controllers/generator.controller";
-import { PostOperatorData, PostOperatorResult, PreOperatorData, PreOperatorResult } from "../operator";
-import { GeneratorModule } from "@/interfaces/generators.interface";
+import { ProcessInfo } from '@/controllers/generator.controller';
+import { PostOperatorData, PostOperatorResult, PreOperatorData, PreOperatorResult } from '../operator';
+import { GeneratorModule } from '@/interfaces/generators.interface';
 
 export class ClairModule {
   static async postOperate(data: PostOperatorData & { module: GeneratorModule<any> }): Promise<PostOperatorResult> {
@@ -13,25 +13,25 @@ export class ClairModule {
     return ClairModule.updatedMeta(operatedData, result);
   }
 
-  static async _postOperate(data: PostOperatorData & { module: GeneratorModule<any> }): Promise<{ data: PostOperatorResult, result: ProcessInfo }> {
-    throw new Error("Method not implemented.");
+  static async _postOperate(data: PostOperatorData & { module: GeneratorModule<any> }): Promise<{ data: PostOperatorResult; result: ProcessInfo }> {
+    throw new Error('Method not implemented.');
   }
 
-  static async _preOperate(data: PreOperatorData & { module: GeneratorModule<any> }): Promise<{ data: PreOperatorResult, result: ProcessInfo }> {
-    throw new Error("Method not implemented.");
+  static async _preOperate(data: PreOperatorData & { module: GeneratorModule<any> }): Promise<{ data: PreOperatorResult; result: ProcessInfo }> {
+    throw new Error('Method not implemented.');
   }
 
   static updatedMeta<T extends PreOperatorResult | PostOperatorResult>(data: T, result: ProcessInfo): T {
     return {
-      ... data,
+      ...data,
       meta: {
-        ... data.meta,
+        ...data.meta,
         process: {
-          ... data.meta.process,
+          ...data.meta.process,
           [result.module]: result,
-        }
-      }
-    }
+        },
+      },
+    };
   }
 
   static formatError(message: string): string {

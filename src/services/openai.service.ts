@@ -1,34 +1,34 @@
-import { Clair } from "@/core/clair";
-import { GENERATOR_MODELS, Generator, GeneratorModel } from "@/interfaces/generators.interface";
-import { ChatCompletionFunctions, ChatCompletionRequestMessage, ChatCompletionRequestMessageFunctionCall, Configuration, CreateChatCompletionRequest, OpenAIApi } from "openai";
-import { Service } from "typedi";
-import { ChatOpenAI } from "langchain/chat_models/openai";
-import { AIMessage, HumanMessage, SystemMessage } from "langchain/schema";
+import { Clair } from '@/core/clair';
+import { Generator, GeneratorModel } from '@/interfaces/generators.interface';
+import { ChatCompletionFunctions, ChatCompletionRequestMessageFunctionCall, Configuration, CreateChatCompletionRequest, OpenAIApi } from 'openai';
+import { Service } from 'typedi';
+import { ChatOpenAI } from 'langchain/chat_models/openai';
+import { AIMessage, HumanMessage, SystemMessage } from 'langchain/schema';
 
 type BaseCompletion = {
-  cost: number,
-  retries: number,
-}
+  cost: number;
+  retries: number;
+};
 
 type JSONCompletion = BaseCompletion & {
-  type: 'json',
-  data: any,
-}
+  type: 'json';
+  data: any;
+};
 
 type FunctionCompletion = BaseCompletion & {
-  type: 'function',
-  function: ChatCompletionFunctions,
-  chain: boolean,
-  data: ChatCompletionRequestMessageFunctionCall,
-}
+  type: 'function';
+  function: ChatCompletionFunctions;
+  chain: boolean;
+  data: ChatCompletionRequestMessageFunctionCall;
+};
 
 // type CompletionErrorType = 'invalid_function' | 'invalid_json' | 'invalid_model' | 'token_limit_reached' | 'unknown_error';
 
 type ErrorCompletion = BaseCompletion & {
-  type: 'error',
-  error: any,
+  type: 'error';
+  error: any;
   // error: CompletionErrorType,
-}
+};
 
 export type SuccesfulCompletion = JSONCompletion | FunctionCompletion;
 
@@ -46,7 +46,7 @@ export class OpenAiService {
    *
    */
   static getClient(apiKey: string): OpenAIApi {
-    const configuration = new Configuration({apiKey});
+    const configuration = new Configuration({ apiKey });
     return new OpenAIApi(configuration);
   }
 
@@ -59,8 +59,8 @@ export class OpenAiService {
     const apiKey = generator.settings.apiKey;
     if (!apiKey) throw new Error('No OpenAI API key provided');
 
-    const availableModels = (await this.listModels(apiKey)).data.map((m) => m.id);
-    const defaultModel = availableModels.includes('gpt-4') ? 'gpt-4' : 'gpt-3.5-turbo';
+    const availableModels = (await this.listModels(apiKey)).data.map(m => m.id);
+    const defaultModel = 'gpt-4.1-nano';
 
     const model = generator.settings.model || defaultModel;
 
@@ -76,7 +76,7 @@ export class OpenAiService {
       model,
       messages,
       ...functionsParam,
-    }
+    };
 
     console.log('#DBG#', 'OPENAI REQUEST', request);
 
@@ -87,43 +87,46 @@ export class OpenAiService {
         streaming: true,
       });
 
-      const response = await chat.call(request.messages.map((message) => {
-        if (message.role === 'user') {
-          return new HumanMessage(message.content);
-        }
-        if (message.role === 'system') {
-          return new SystemMessage(message.content);
-        }
-        if (message.role === 'assistant') {
-          return new AIMessage(message.content);
-        }
+      const response = await chat.call(
+        request.messages.map(message => {
+          if (message.role === 'user') {
+            return new HumanMessage(message.content);
+          }
+          if (message.role === 'system') {
+            return new SystemMessage(message.content);
+          }
+          if (message.role === 'assistant') {
+            return new AIMessage(message.content);
+          }
 
-        throw new Error(`Unknown message role ${message.role}`);
-      }), {
-        callbacks: [
-          {
-            handleLLMNewToken(token: string) {
-              streamCallback?.(token);
+          throw new Error(`Unknown message role ${message.role}`);
+        }),
+        {
+          callbacks: [
+            {
+              handleLLMNewToken(token: string) {
+                streamCallback?.(token);
+              },
             },
-          },
-        ],
-      });
+          ],
+        },
+      );
 
       return;
-    }
-    else {
+    } else {
       try {
         const response = await OpenAiService.getClient(apiKey).createChatCompletion(request);
+        console.log('#DBG#', 'OPENAI RESPONSE', response.data);
 
         const message = response.data.choices[0].message;
+        console.log('#DBG#', 'OPENAI MESSAGE', message);
 
         const usage = response.data.usage;
         const price = getUsageCost(usage, generator.settings.model);
-
-        console.log('#DBG#', 'OPENAI RESPONSE', message);
+        console.log('#DBG#', 'OPENAI USAGE', usage, 'PRICE', price);
 
         if (message.function_call) {
-          const functionCalled = functions.find((f) => f.name === message.function_call.name);
+          const functionCalled = functions.find(f => f.name === message.function_call.name);
 
           return {
             type: 'function',
@@ -132,7 +135,7 @@ export class OpenAiService {
             chain: functionCalled.chain,
             cost: price,
             retries: 0,
-          }
+          };
         }
 
         return {
@@ -156,8 +159,8 @@ export class OpenAiService {
   }
 }
 
-function getUsageCost(usage: { prompt_tokens: number, completion_tokens: number, total_tokens: number }, model: GeneratorModel) {
-  const prices: Record<GeneratorModel, { prompt: number, completion: number }> = {
+function getUsageCost(usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }, model: GeneratorModel) {
+  const prices: Record<GeneratorModel, { prompt: number; completion: number }> = {
     'gpt-3.5-turbo': {
       prompt: 0.0015,
       completion: 0.002,
@@ -174,13 +177,25 @@ function getUsageCost(usage: { prompt_tokens: number, completion_tokens: number,
       prompt: 0.06,
       completion: 0.12,
     },
-    'gpt-4-1106-preview': {
-      prompt: 0.01,
-      completion: 0.03,
-    }
+    'gpt-4.1': {
+      prompt: 0.002,
+      completion: 0.008,
+    },
+    'gpt-4.1-mini': {
+      prompt: 0.0004,
+      completion: 0.0016,
+    },
+    'gpt-4.1-nano': {
+      prompt: 0.0001,
+      completion: 0.0004,
+    },
   };
 
-  const price = prices[model];
+  let price = prices[model];
 
-  return Math.round((price.prompt * (usage.prompt_tokens / 1000) + (price.completion * (usage.completion_tokens / 1000))) * 10000) / 10000;
+  if (!price) {
+    price = prices['gpt-4.1-nano']; // Default to gpt-4.1-nano if model is not found
+  }
+
+  return Math.round((price.prompt * (usage.prompt_tokens / 1000) + price.completion * (usage.completion_tokens / 1000)) * 10000) / 10000;
 }
