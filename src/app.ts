@@ -12,6 +12,7 @@ import { NODE_ENV, PORT, LOG_FORMAT, ORIGIN, CREDENTIALS } from '@config';
 import { Routes } from '@interfaces/routes.interface';
 import { ErrorMiddleware } from '@middlewares/error.middleware';
 import { logger, stream } from '@utils/logger';
+import rateLimit from 'express-rate-limit';
 
 export class App {
   public app: express.Application;
@@ -56,6 +57,29 @@ export class App {
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(cookieParser());
+    this.app.use(
+      rateLimit({
+        windowMs: 60 * 1000, // 1 minute
+        max: 20, // max 10 requêtes par IP
+        standardHeaders: true,
+        legacyHeaders: false,
+      }),
+    );
+    this.app.use(
+      rateLimit({
+        windowMs: 60 * 1000, // 1 minute
+        max: 20, // max 10 requêtes par clé API
+        keyGenerator: req => {
+          try {
+            return req.body?.settings?.apiKey || 'no-key';
+          } catch (e) {
+            return 'no-key';
+          }
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+      }),
+    );
   }
 
   private initializeRoutes(routes: Routes[]) {
