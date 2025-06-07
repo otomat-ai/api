@@ -16,7 +16,8 @@
     "deploy:prod": "npm run build && pm2 start ecosystem.config.js --only prod",
     "deploy:dev": "pm2 start ecosystem.config.js --only dev",
     "typeorm": "typeorm-ts-node-commonjs",
-    "ingest": "cross-env NODE_OPTIONS='--experimental-fetch' npm run ingest"
+    "ingest": "cross-env NODE_OPTIONS='--experimental-fetch' npm run ingest",
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "bcrypt": "^5.0.1",
