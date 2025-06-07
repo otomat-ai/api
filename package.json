@@ -4,6 +4,7 @@
   "description": "Otomat Generator API",
   "author": "Nicolas Miquel",
   "license": "ISC",
+  "main": "dist/index.js",
   "scripts": {
     "start": "cross-env NODE_ENV=production NODE_OPTIONS='--experimental-fetch' node dist/server.js",
     "dev": "cross-env NODE_ENV=development NODE_OPTIONS='--experimental-fetch' nodemon",
