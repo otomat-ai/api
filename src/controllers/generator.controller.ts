@@ -99,7 +99,6 @@ export class GeneratorController {
     const retries = validatedGenerator.settings.retries || DEFAULT_COMPLETION_RETRIES;
 
     try {
-      // PRE PROCESSING
       const preValidate = await Operator.preOperate({
         generator: validatedGenerator,
         modules: flowOptions.filter(isPreModuleOption).map(option => option.module),

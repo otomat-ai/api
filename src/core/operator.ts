@@ -50,8 +50,6 @@ export class Operator {
   static async postOperate({ generator, modules, meta, completion }: PostOperatorData): Promise<PostOperatorResult> {
     let finalResult: PostOperatorResult = { success: true, generator, meta, completion };
 
-    console.log('#DBG#', 'MODULES', modules);
-
     for (const module of modules) {
       const operator: typeof ClairModule = operatingModules[module.name].operator;
       if (operator === undefined) {
@@ -72,8 +70,6 @@ export class Operator {
 
   static async preOperate({ generator, modules, meta }: PreOperatorData): Promise<PreOperatorResult> {
     let finalResult: PreOperatorResult = { success: true, generator, meta };
-
-    console.log('#DBG#', 'MODULES', modules);
 
     for (const module of modules) {
       const operator: typeof ClairModule = operatingModules[module.name].operator;
